@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planning Poker Cards</title>
+    <style>
+        /* Main container styles */
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 20px;
+            max-width: 700px;
+            margin: 30px auto;
+            padding: 25px;
+            justify-content: center;
+        }
+
+        /* Base card styles */
+        .card {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 130px;
+            border: 8px solid transparent;
+            border-radius: 12px;
+            background-color: #f0f8ff;
+            color: #333;
+            font-size: 30px;
+            font-family: 'Arial Black', sans-serif;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s ease-in-out;
+            box-sizing: border-box;
+            padding: 10px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: scale(1.07);
+        }
+
+        /* Selected card styles */
+        .card.selected {
+            transform: scale(1.1);
+            background-image: linear-gradient(to bottom right, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0), rgba(0, 0, 0, 0.15));
+            z-index: 1;
+        }
+
+        /* Animated gradient border - Darker Border - **Specific Darker Colors Set** */
+        .card.selected::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            bottom: -8px;
+            left: -8px;
+            border-radius: 12px;
+            background: linear-gradient(135deg,
+                /* **Darker Border Colors - Manually Set for each card value** */
+                var(--selected-border-color, #333) 0%, /* Using CSS variable for darker border */
+                transparent 25%,
+                transparent 50%,
+                var(--selected-border-color, #333) 75%,
+                transparent 100%);
+            background-size: 400% 400%;
+            z-index: -1;
+            animation: gradientBorder 4s linear infinite;
+        }
+
+        /* Border rotation animation - Darker Border - **Specific Darker Colors Set** */
+        .card.selected::after {
+            content: '';
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            bottom: -8px;
+            left: -8px;
+            border-radius: 12px;
+            background: linear-gradient(45deg,
+                transparent 0%,
+                /* **Darker Border Colors - Manually Set for each card value** */
+                var(--selected-border-color, #333) 20%, /* Using CSS variable for darker border */
+                var(--selected-border-color, #333) 40%,
+                transparent 60%,
+                transparent 100%);
+            background-size: 300% 300%;
+            z-index: -2;
+            animation: gradientBorder 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes gradientBorder {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        /* Card color variations - **Added --selected-border-color for each** */
+        .card[data-value="0"] { --card-base-color: #e8f5e9; --border-color: #a5d6a7; --selected-border-color: #8cb38e; background-color: var(--card-base-color); border-color: var(--border-color); } /* Darker #8cb38e */
+        .card[data-value="0.5"] { --card-base-color: #fffde7; --border-color: #fff9c4; --selected-border-color: #fff88f; background-color: var(--card-base-color); border-color: var(--border-color); } /* Darker #fff88f */
+        .card[data-value="1"] { --card-base-color: #fbe9e7; --border-color: #ffccbc; --selected-border-color: #ffb08a; background-color: var(--card-base-color); border-color: var(--border-color); } /* Darker #ffb08a */
+        .card[data-value="2"] { --card-base-color: #ede7f6; --border-color: #d1c4e9; --selected-border-color: #b3a2c7; background-color: var(--card-base-color); border-color: var(--border-color); } /* Darker #b3a2c7 */
+        .card[data-value="3"] { --card-base-color: #e3f2fd; --border-color: #bbdefb; --selected-border-color: #93b9d8; background-color: var(--card-base-color); border-color: var(--border-color); } /* Darker #93b9d8 */
+        .card[data-value="5"] { --card-base-color: #f0f4c3; --border-color: #e6ee9c; --selected-border-color: #d0d87e; background-color: var(--card-base-color); border-color: var(--border-color); } /* Darker #d0d87e */
+        .card[data-value="8"] { --card-base-color: #ffcc80; --border-color: #ffa726; --selected-border-color: #e69521; background-color: var(--card-base-color); border-color: var(--border-color); } /* Darker #e69521 */
+        .card[data-value="13"] { --card-base-color: #b2ebf2; --border-color: #80deea; --selected-border-color: #62b7c1; background-color: var(--card-base-color); border-color: var(--border-color); } /* Darker #62b7c1 */
+        .card[data-value="20"] { --card-base-color: #cfd8dc; --border-color: #b0bec5; --selected-border-color: #929ca3; background-color: var(--card-base-color); border-color: var(--border-color); } /* Darker #929ca3 */
+        .card[data-value="40"] { --card-base-color: #d7ccc8; --border-color: #bcaaa4; --selected-border-color: #a1928b; background-color: var(--card-base-color); border-color: var(--border-color); } /* Darker #a1928b */
+        .card[data-value="100"] { --card-base-color: #f8bbd0; --border-color: #f06292; --selected-border-color: #d1527b; background-color: var(--card-base-color); border-color: var(--border-color); } /* Darker #d1527b */
+        .card[data-value="infinity"] { --card-base-color: #ffe0b2; --border-color: #ffb74d; --selected-border-color: #e6a244; background-color: var(--card-base-color); border-color: var(--border-color); } /* Darker #e6a244 */
+        .card[data-value="question"] { --card-base-color: #c8e6c9; --border-color: #a5d6a7; --selected-border-color: #8cb38e; background-color: var(--card-base-color); border-color: var(--border-color); color: #555; } /* Darker #8cb38e - re-using "0" darker color */
+        .card[data-value="coffee"] { --card-base-color: #dcedc8; --border-color: #c5e1a5; --selected-border-color: #a8c48d; background-color: var(--card-base-color); border-color: var(--border-color); } /* Darker #a8c48d */
+    </style>
+</head>
+<body>
+
+<div class="card-container">
+    <div class="card" data-value="0">
+        <div class="card-value">0</div>
+    </div>
+    <div class="card" data-value="0.5">
+        <div class="card-value">½</div>
+    </div>
+    <div class="card" data-value="1">
+        <div class="card-value">1</div>
+    </div>
+    <div class="card" data-value="2">
+        <div class="card-value">2</div>
+    </div>
+    <div class="card" data-value="3">
+        <div class="card-value">3</div>
+    </div>
+    <div class="card" data-value="5">
+        <div class="card-value">5</div>
+    </div>
+    <div class="card" data-value="8">
+        <div class="card-value">8</div>
+    </div>
+    <div class="card" data-value="13">
+        <div class="card-value">13</div>
+    </div>
+    <div class="card" data-value="20">
+        <div class="card-value">20</div>
+    </div>
+    <div class="card" data-value="40">
+        <div class="card-value">40</div>
+    </div>
+    <div class="card" data-value="100">
+        <div class="card-value">100</div>
+    </div>
+    <div class="card" data-value="infinity">
+        <div class="card-value">∞</div>
+    </div>
+    <div class="card" data-value="question">
+        <div class="card-value">?</div>
+    </div>
+    <div class="card" data-value="coffee">
+        <div class="card-value">☕</div>
+    </div>
+</div>
+
+<script>
+    // Get all cards and add click event listeners
+    document.addEventListener('DOMContentLoaded', () => {
+        const cards = document.querySelectorAll('.card');
+
+        cards.forEach(card => {
+            card.addEventListener('click', () => toggleSelect(card));
+        });
+    });
+
+    // Toggle selection function
+    function toggleSelect(cardElement) {
+        // Check if clicking the currently selected card
+        if (cardElement.classList.contains('selected')) {
+            // If already selected, deselect it
+            cardElement.classList.remove('selected');
+        } else {
+            // Otherwise, deselect any selected card and select the clicked one
+            const currentlySelected = document.querySelector('.card.selected');
+            if (currentlySelected) {
+                currentlySelected.classList.remove('selected');
+            }
+            cardElement.classList.add('selected');
+        }
+    }
+</script>
+
+</body>
+</html>
