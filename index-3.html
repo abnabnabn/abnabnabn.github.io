@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overlay Plasma Tunnel - Blended Metaball BG</title>
+    <style>
+        /* Basic CSS Reset */
+        body, html {
+            margin: 0;
+            padding: 0;
+            /* overflow: hidden; */ /* Allow potential scrollbars */
+        }
+
+        /* Main 3D Canvas Styling */
+        #tunnel-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Behind everything */
+            display: block;
+        }
+
+        /* Background Canvas Styling (Updated for Border) */
+        #background-canvas {
+            position: absolute; /* Position relative to document, controlled by JS */
+            z-index: 0;  /* Behind .content (1) but above #tunnel-canvas (-1) */
+            display: block;
+            pointer-events: none; /* Prevent it from intercepting mouse clicks */
+            opacity: 0.7; /* 50% OPACITY */
+            border-radius: 10px; /* Match content div */
+            /* Width, height, top, left are set dynamically by JavaScript */
+            background-color: #000;
+        }
+
+        /* Foreground Content Styling (Ensure transparent background) */
+        .content {
+            position: relative; /* Needed for absolute positioning of bg canvas & z-index */
+            z-index: 1;      /* Ensures it's above background canvas */
+            padding: 30px;
+            margin: 50px auto; /* Centers the box horizontally */
+            max-width: 700px;
+            background-color: transparent; /* CRUCIAL: Keep transparent */
+            border-radius: 10px;
+            color: #eee;
+            font-family: sans-serif;
+            line-height: 1.6;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+             /* Optional: Add backdrop filter for frosted glass effect over background */
+             /* backdrop-filter: blur(4px) brightness(0.9); */
+             /* -webkit-backdrop-filter: blur(4px) brightness(0.9); */ /* Safari */
+        }
+        /* Text readability styles */
+        .content h1 {
+            color: #00ffff;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+        }
+         .content p {
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+         }
+         #time-info {
+             font-size: 0.9em;
+             text-align: center;
+             margin-top: 20px;
+             color: #ccc;
+         }
+    </style>
+</head>
+<body>
+    <canvas id="tunnel-canvas"></canvas>
+    <canvas id="background-canvas"></canvas>
+
+    <div class="content">
+        <h1>Overlay Plasma Tunnel</h1>
+        <p>Just playing, this isn't finished.  Might turn into a tunnel game</p>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.163.0/build/three.module.js"
+             }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // --- Configuration ---
+        // Plasma Config
+        const PLASMA_CANVAS_SIZE = 256;
+        const PLASMA_EMISSIVE_INTENSITY = 1.8;
+
+        // Metaball Config (Updated)
+        const METABALL_CANVAS_SIZE = 128; // Resolution of the source metaball pattern
+        const NUM_METABALLS = 4;
+        const METABALL_THRESHOLD = 0.9; // Overall threshold for visibility
+        const METABALL_BACKGROUND_COLOR = { r: 10, g: 10, b: 20, a: 255 }; // Added alpha
+        // Define distinct colors for the balls
+        const METABALL_COLORS = [
+            { r: 255, g: 0,   b: 0   }, // Red
+            { r: 0,   g: 255, b: 0   }, // Green
+            { r: 100, g: 100, b: 255 }, // Blue
+            { r: 255, g: 255, b: 0   }, // Yellow
+            { r: 255, g: 0,   b: 255 }, // Magenta
+            { r: 0,   g: 255, b: 255 }, // Cyan
+        ];
+
+        // Tunnel Config
+        const PATH_SEGMENTS = 200;
+        const TUBE_TUBULAR_SEGMENTS = 250;
+        const TUBE_RADIUS = 3;
+        const TUBE_RADIAL_SEGMENTS = 10;
+        const CAMERA_FOLLOW_SPEED = 0.03;
+
+        // Fog Config
+        const FOG_COLOR = 0x000000;
+        const FOG_DENSITY = 0.09;
+
+        // --- Scene, Camera, Renderer ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({
+            canvas: document.getElementById('tunnel-canvas'),
+            antialias: true,
+            alpha: true
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(FOG_COLOR, 1);
+
+        // --- Background Canvas Setup ---
+        const bgCanvas = document.getElementById('background-canvas');
+        const bgCtx = bgCanvas ? bgCanvas.getContext('2d') : null;
+        const contentDiv = document.querySelector('.content');
+
+        function syncBackgroundCanvas() {
+            if (!bgCanvas || !contentDiv || !bgCtx) return;
+            const rect = contentDiv.getBoundingClientRect();
+            bgCanvas.style.position = 'absolute';
+            bgCanvas.style.left = `${rect.left + window.scrollX}px`;
+            bgCanvas.style.top = `${rect.top + window.scrollY}px`;
+            bgCanvas.style.width = `${rect.width}px`;
+            bgCanvas.style.height = `${rect.height}px`;
+            const newWidth = Math.round(rect.width);
+            const newHeight = Math.round(rect.height);
+            if (bgCanvas.width !== newWidth || bgCanvas.height !== newHeight) {
+                bgCanvas.width = newWidth;
+                bgCanvas.height = newHeight;
+            }
+        }
+        setTimeout(syncBackgroundCanvas, 50); // Initial sync
+
+        // --- Fog ---
+        scene.fog = new THREE.FogExp2(FOG_COLOR, FOG_DENSITY);
+
+        // --- Create the 3D Path ---
+        const points = [];
+        const pathScale = 35;
+        const pathLengthFactor = 3;
+        for (let i = 0; i < PATH_SEGMENTS; i++) {
+            const angle = (i / PATH_SEGMENTS) * Math.PI * 6;
+            const x = Math.cos(angle * 1.2) * pathScale * (1 + Math.sin(angle * 0.8 + i * 0.01) * 0.4);
+            const y = Math.sin(angle * 1.5) * pathScale * 0.3 * (1 + Math.cos(angle * 0.5 + i * 0.02) * 0.3);
+            const z = -i * pathLengthFactor;
+            points.push(new THREE.Vector3(x, y, z));
+        }
+        const path = new THREE.CatmullRomCurve3(points);
+
+        // --- Plasma Texture ---
+        const plasmaCanvas = document.createElement('canvas');
+        plasmaCanvas.width = PLASMA_CANVAS_SIZE;
+        plasmaCanvas.height = PLASMA_CANVAS_SIZE;
+        const plasmaCtx = plasmaCanvas.getContext('2d', { willReadFrequently: true });
+        const plasmaTexture = new THREE.CanvasTexture(plasmaCanvas);
+        plasmaTexture.wrapS = THREE.RepeatWrapping;
+        plasmaTexture.wrapT = THREE.RepeatWrapping;
+        let plasmaTime = Math.random() * 1000;
+        function updatePlasmaTexture(delta) {
+            plasmaTime += delta * 4.0;
+            const imageData = plasmaCtx.getImageData(0, 0, plasmaCanvas.width, plasmaCanvas.height);
+            const data = imageData.data;
+            const w = plasmaCanvas.width;
+            const h = plasmaCanvas.height;
+            const timeParam1 = plasmaTime * 0.8;
+            const timeParam2 = plasmaTime * 0.5;
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const v1 = Math.sin((x * 0.08) + timeParam1 + Math.sin(y * 0.05 + timeParam2));
+                    const v2 = Math.sin((y * 0.07) - timeParam2 + Math.cos(x * 0.06 - timeParam1));
+                    const cx = x + 0.5 * Math.sin(timeParam1 / 5);
+                    const cy = y + 0.5 * Math.cos(timeParam2 / 3);
+                    const v3 = Math.sin((Math.sqrt((cx*cx + cy*cy)) * 0.05) + timeParam1);
+                    const value = v1 + v2 + v3;
+                    const r = Math.floor(128 + 127 * Math.sin(value * Math.PI * 0.8));
+                    const g = Math.floor(128 + 127 * Math.sin(value * Math.PI * 0.8 + 2 * Math.PI / 3));
+                    const b = Math.floor(128 + 127 * Math.sin(value * Math.PI * 0.8 + 4 * Math.PI / 3));
+                    const index = (y * w + x) * 4;
+                    data[index] = r; data[index + 1] = g; data[index + 2] = b; data[index + 3] = 255;
+                }
+            }
+            plasmaCtx.putImageData(imageData, 0, 0);
+            plasmaTexture.needsUpdate = true;
+        }
+
+        // --- Metaball Texture (Updated Init & Update Logic) ---
+        const metaballCanvas = document.createElement('canvas');
+        metaballCanvas.width = METABALL_CANVAS_SIZE;
+        metaballCanvas.height = METABALL_CANVAS_SIZE;
+        const metaballCtx = metaballCanvas.getContext('2d', { willReadFrequently: true });
+        const metaballTexture = new THREE.CanvasTexture(metaballCanvas);
+        metaballTexture.wrapS = THREE.RepeatWrapping;
+        metaballTexture.wrapT = THREE.RepeatWrapping;
+        metaballTexture.repeat.set( 2, 4 ); // Adjust visual scale on tunnel walls
+
+        const balls = [];
+        for (let i = 0; i < NUM_METABALLS; i++) {
+            balls.push({
+                x: Math.random() * metaballCanvas.width,
+                y: Math.random() * metaballCanvas.height,
+                r: Math.random() * 15 + 10,
+                vx: (Math.random() - 0.5) * 40,
+                vy: (Math.random() - 0.5) * 40,
+                color: METABALL_COLORS[i % METABALL_COLORS.length] // Assign color
+            });
+        }
+
+        function updateMetaballTexture(delta) {
+            const w = metaballCanvas.width;
+            const h = metaballCanvas.height;
+
+            // 1. Move balls
+            balls.forEach(ball => {
+                ball.x += ball.vx * delta;
+                ball.y += ball.vy * delta;
+                if (ball.x - ball.r < 0 || ball.x + ball.r > w) { ball.vx *= -1; ball.x = Math.max(ball.r, Math.min(w - ball.r, ball.x)); }
+                if (ball.y - ball.r < 0 || ball.y + ball.r > h) { ball.vy *= -1; ball.y = Math.max(ball.r, Math.min(h - ball.r, ball.y)); }
+            });
+
+            // 2. Calculate pixel values with color blending
+            const imageData = metaballCtx.getImageData(0, 0, w, h);
+            const data = imageData.data;
+            const rSq = balls.map(ball => ball.r * ball.r);
+
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    let totalR = 0, totalG = 0, totalB = 0, totalInfluence = 0;
+                    for (let i = 0; i < NUM_METABALLS; i++) {
+                        const ball = balls[i];
+                        const dx = x - ball.x;
+                        const dy = y - ball.y;
+                        const dSq = dx * dx + dy * dy;
+                        const influence = rSq[i] / (dSq + 0.0001);
+                        totalR += influence * ball.color.r;
+                        totalG += influence * ball.color.g;
+                        totalB += influence * ball.color.b;
+                        totalInfluence += influence;
+                    }
+                    const index = (y * w + x) * 4;
+                    if (totalInfluence >= METABALL_THRESHOLD) {
+                        const finalR = Math.min(255, Math.max(0, totalR / totalInfluence));
+                        const finalG = Math.min(255, Math.max(0, totalG / totalInfluence));
+                        const finalB = Math.min(255, Math.max(0, totalB / totalInfluence));
+                        data[index] = finalR;
+                        data[index + 1] = finalG;
+                        data[index + 2] = finalB;
+                        data[index + 3] = 255; // Opaque
+                    } else {
+                        data[index] = METABALL_BACKGROUND_COLOR.r;
+                        data[index + 1] = METABALL_BACKGROUND_COLOR.g;
+                        data[index + 2] = METABALL_BACKGROUND_COLOR.b;
+                        data[index + 3] = METABALL_BACKGROUND_COLOR.a;
+                    }
+                }
+            }
+            // Update the small canvas (for 3D texture)
+            metaballCtx.putImageData(imageData, 0, 0);
+            metaballTexture.needsUpdate = true;
+
+            // Draw onto the background canvas
+            if (bgCtx && bgCanvas.width > 0 && bgCanvas.height > 0) {
+                 bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+                 bgCtx.drawImage(metaballCanvas, 0, 0, bgCanvas.width, bgCanvas.height);
+            }
+        }
+
+        // --- Tunnel Geometry & Material ---
+        const tubeGeometry = new THREE.TubeGeometry(path, TUBE_TUBULAR_SEGMENTS, TUBE_RADIUS, TUBE_RADIAL_SEGMENTS, false);
+        const tubeMaterial = new THREE.MeshStandardMaterial({
+            map: metaballTexture,
+            emissive: 0xffffff,
+            emissiveMap: plasmaTexture,
+            emissiveIntensity: PLASMA_EMISSIVE_INTENSITY,
+            side: THREE.BackSide,
+            metalness: 0.1,
+            roughness: 0.8,
+            fog: true,
+        });
+        const tunnelMesh = new THREE.Mesh(tubeGeometry, tubeMaterial);
+        scene.add(tunnelMesh);
+
+        // --- Lighting ---
+        const ambientLight = new THREE.AmbientLight(0x505070, 0.8);
+        scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0xeeeeff, 1.8, 40, 1.5);
+        camera.add(pointLight);
+        scene.add(camera);
+
+        // --- Animation ---
+        const clock = new THREE.Clock();
+        let curveProgress = 0;
+        const camPos = new THREE.Vector3();
+        const camLookAt = new THREE.Vector3();
+        const camTarget = new THREE.Vector3();
+        path.getPointAt(0.01, camTarget);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+
+            // Update Textures
+            updatePlasmaTexture(delta);
+            updateMetaballTexture(delta);
+
+            // Move Camera
+            curveProgress = (curveProgress + delta * CAMERA_FOLLOW_SPEED) % 1;
+            path.getPointAt(curveProgress, camPos);
+            camera.position.copy(camPos);
+            let lookAheadProgress = (curveProgress + 0.005) % 1.0;
+            path.getPointAt(lookAheadProgress, camLookAt);
+            camTarget.lerp(camLookAt, 0.08);
+            camera.lookAt(camTarget);
+
+            // Render
+            renderer.render(scene, camera);
+        }
+
+        // --- Handle Window Resize ---
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            // Update Background Canvas Size & Position after layout reflow
+            setTimeout(syncBackgroundCanvas, 0);
+        });
+
+        // --- Start Animation ---
+        console.log("Starting animation with blended metaballs.");
+        animate();
+
+    </script>
+</body>
+</html>
