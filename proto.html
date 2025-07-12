@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full App Prototype</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- THEME VARIABLES --- */
+        :root {
+            /* Light Mode (Default) */
+            --bg-primary: #f2f2f7;
+            --bg-secondary: #ffffff;
+            --text-primary: #1c1c1e;
+            --text-secondary: #636366;
+            --border-color: #e5e5ea;
+            --shadow-color: rgba(0,0,0,0.05);
+
+            --color-blue: #007aff;
+            --color-green: #34c759;
+            --color-amber: #ff9500;
+            --color-red: #ff3b30;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #000000;
+            --bg-secondary: #1c1c1e;
+            --text-primary: #ffffff;
+            --text-secondary: #8e8e93;
+            --border-color: #3a3a3c;
+            --shadow-color: rgba(255,255,255,0.05);
+        }
+
+        /* --- BASIC SETUP --- */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #333;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 2rem;
+            min-height: 100vh;
+        }
+
+        /* --- PHONE & SCREEN LAYOUT --- */
+        .phone-screen {
+            position: relative;
+            width: 390px;
+            height: 844px;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            border-radius: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+            border: 10px solid #111;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .app-screen {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            background-color: var(--bg-primary);
+            transition: transform 0.3s ease-in-out, background-color 0.3s ease;
+        }
+        .hidden { display: none !important; }
+
+        /* --- SHARED COMPONENTS --- */
+        .app-header {
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        .app-header h1 { font-size: 1.2rem; font-weight: 700; margin: 0; }
+        .header-button { font-size: 1.2rem; color: var(--color-blue); cursor: pointer; background: none; border: none; padding: 0; transition: color 0.3s ease, opacity 0.3s ease; }
+        .header-button.disabled { color: var(--border-color); cursor: not-allowed; }
+        .main-content { flex-grow: 1; padding: 1rem; overflow-y: auto; }
+        .main-content h2 { font-size: 1.5rem; margin: 1rem 0 1rem 0; }
+        .main-content h2:first-child { margin-top: 0; }
+        .card {
+            background-color: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 10px var(--shadow-color);
+            transition: background-color 0.3s ease, padding 0.3s ease, border 0.3s ease, opacity 0.2s ease;
+        }
+        .add-button { 
+            width: 100%; 
+            padding: 0.8rem; 
+            border: 1px solid var(--border-color); 
+            background: none; 
+            color: var(--text-secondary); 
+            border-radius: 12px; 
+            cursor: pointer; 
+            margin-top: 1rem;
+            box-sizing: border-box;
+        }
+
+        /* --- GROUP DASHBOARD --- */
+        .group-card { cursor: pointer; display: flex; flex-direction: column; position: relative; border: 2px solid transparent; }
+        .group-card.policy-changed { border-color: var(--color-amber); }
+        .group-card[draggable="true"] { cursor: grab; }
+        .group-card.dragging, .device-card.dragging { opacity: 0.5; box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+        .drag-over { border-top: 2px dashed var(--color-blue); }
+
+        .group-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .group-card-header h3 { margin: 0; font-size: 1.2rem; }
+        .group-header-controls { display: flex; align-items: center; gap: 1rem; }
+        .device-summary { font-size: 0.8rem; color: var(--text-secondary); }
+        .edit-group-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 0.9rem; padding: 0.2rem; }
+        
+        .policy-controller { display: flex; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); }
+        .policy-controller button { flex-grow: 1; padding: 0.6rem; border: none; background-color: var(--bg-primary); color: var(--color-blue); font-family: 'Inter', sans-serif; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all 0.3s ease; }
+        .policy-controller button:not(:last-child) { border-right: 1px solid var(--border-color); }
+        .policy-controller .selected { color: #fff; }
+        .policy-controller .btn-full.selected { background-color: var(--color-blue); }
+        .policy-controller .btn-restricted.selected { background-color: var(--color-amber); }
+        .policy-controller .btn-blocked.selected { background-color: var(--color-red); }
+
+        .group-card-expanded-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out, margin-top 0.4s ease-out; margin-top: 0; }
+        .group-card.expanded .group-card-expanded-content { max-height: 300px; margin-top: 1rem; transition: max-height 0.5s ease-in, margin-top 0.5s ease-in; }
+        .group-edit-controls { display: flex; flex-direction: column; gap: 1rem; }
+        .group-name-input-wrapper { display: flex; flex-direction: column; gap: 0.25rem; }
+        .group-name-input-wrapper label { font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); }
+        .group-name-input { width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background-color: var(--bg-primary); color: var(--text-primary); box-sizing: border-box; }
+        .delete-group-btn { padding: 0.6rem; border: none; background-color: var(--color-red); color: white; border-radius: 8px; cursor: pointer; font-weight: 500; }
+
+        /* --- GROUP DETAIL VIEW --- */
+        #group-detail-header-title-wrapper { display: flex; align-items: center; gap: 0.5rem; }
+        #group-detail-title-input { font-size: 1.2rem; font-weight: 700; border: 1px solid var(--border-color); border-radius: 6px; padding: 0.2rem 0.4rem; flex-grow: 1; }
+        .device-card { cursor: pointer; }
+        .device-card-main { display: flex; align-items: center; gap: 1rem; }
+        .device-icon { font-size: 1.5rem; color: var(--color-blue); }
+        .device-details { flex-grow: 1; }
+        .device-name-header { display: flex; justify-content: space-between; align-items: center; }
+        .device-name-header h4, .device-name-header .device-name-input { margin: 0 0 4px 0; font-size: 1rem; flex-grow: 1; }
+        .device-name-input { padding: 0.2rem; border: 1px solid var(--border-color); border-radius: 4px; }
+        .delete-device-btn-header { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 0.9rem; padding: 0.2rem; margin-left: 0.5rem; }
+        .delete-device-btn-header:hover { color: var(--color-red); }
+        .device-details p { margin: 0; font-size: 0.8rem; color: var(--text-secondary); }
+        .device-card.offline .device-icon, .device-card.offline p { color: #8e8e93; }
+        
+        .device-card-expanded-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out, margin-top 0.4s ease-out; margin-top: 0; }
+        .device-card.expanded .device-card-expanded-content { max-height: 300px; margin-top: 1rem; transition: max-height 0.5s ease-in, margin-top 0.5s ease-in; }
+        .expanded-details-grid { display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1rem; font-size: 0.9rem; }
+        .expanded-details-grid span:first-child { font-weight: 500; color: var(--text-secondary); }
+        .expanded-controls { margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
+        .move-device-select { flex-grow: 1; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border-color); background-color: var(--bg-primary); color: var(--text-primary); }
+        
+        /* --- ADD/MOVE DEVICE SCREEN --- */
+        .device-selection-group h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            margin: 1.5rem 0 0.5rem 0;
+        }
+        .device-selection-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .device-selection-item:last-child { border-bottom: none; }
+        .device-selection-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 1rem;
+            accent-color: var(--color-blue);
+        }
+        .device-selection-item label { flex-grow: 1; }
+        .device-selection-item label strong { display: block; font-weight: 500; color: var(--text-primary); }
+        .device-selection-item label span { font-size: 0.8rem; color: var(--text-secondary); }
+
+        /* --- SETTINGS SCREEN --- */
+        .settings-item { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 0; }
+        .settings-item:not(:last-child) { border-bottom: 1px solid var(--border-color); }
+        .card .settings-item:last-child { border-bottom: none; }
+        .speed-control { display: flex; align-items: center; gap: 0.5rem; }
+        .speed-control input { width: 60px; padding: 0.4rem; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--bg-primary); color: var(--text-primary); }
+        .speed-control span { font-size: 0.9rem; }
+        #refresh-device-list-btn { width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); background-color: var(--bg-primary); color: var(--text-primary); border-radius: 12px; cursor: pointer; margin-top: 1rem; }
+        
+        .theme-toggle { position: relative; display: inline-block; width: 51px; height: 31px; }
+        .theme-toggle input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--color-blue); }
+        input:checked + .slider:before { transform: translateX(21px); }
+
+        /* --- MODAL --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 100; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+        .modal-content { background: var(--bg-secondary); padding: 1.5rem; border-radius: 12px; width: 85%; max-width: 320px; text-align: center; }
+        .modal-content h3 { margin-top: 0; }
+        .modal-content p { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0; }
+        .modal-buttons { display: flex; gap: 1rem; margin-top: 1.5rem; }
+        .modal-buttons button { flex: 1; padding: 0.7rem; border-radius: 8px; border: none; font-weight: 500; cursor: pointer; }
+        .modal-confirm-btn { background-color: var(--color-red); color: white; }
+        .modal-cancel-btn { background-color: var(--border-color); color: var(--text-primary); }
+        
+        #add-group-modal .modal-content { text-align: left; }
+        #add-group-modal-input { width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background-color: var(--bg-primary); color: var(--text-primary); box-sizing: border-box; margin-top: 1rem; }
+        #add-group-modal-error { color: var(--color-red); font-size: 0.8rem; height: 1rem; margin-top: 0.5rem; }
+        #add-group-modal-confirm { background-color: var(--color-blue); }
+
+        #modal-device-list {
+            max-height: 150px;
+            overflow-y: auto;
+            text-align: left;
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.5rem;
+            margin-top: 1rem;
+        }
+        #modal-device-list ul { list-style: none; padding: 0; margin: 0; }
+        #modal-device-list li { padding: 0.25rem 0.5rem; }
+
+    </style>
+</head>
+<body>
+
+<div class="phone-screen" data-theme="light">
+
+    <!-- Screen 1: Group Dashboard -->
+    <div id="group-dashboard-screen" class="app-screen">
+        <header class="app-header">
+            <button class="header-button" id="commit-changes-button"><i class="fas fa-play"></i></button>
+            <h1>Groups</h1>
+            <button class="header-button" id="settings-button"><i class="fas fa-cog"></i></button>
+        </header>
+        <main class="main-content" id="group-list-container"></main>
+    </div>
+
+    <!-- Screen 2: Group Detail View -->
+    <div id="group-detail-screen" class="app-screen hidden">
+        <header class="app-header">
+            <button class="header-button" id="back-to-dashboard-button"><i class="fas fa-chevron-left"></i></button>
+            <div id="group-detail-header-title-wrapper">
+                 <h1 id="group-detail-title"></h1>
+                 <button class="header-button" id="edit-group-title-button"><i class="fas fa-pencil-alt"></i></button>
+            </div>
+            <div style="width: 24px;"></div> <!-- Placeholder -->
+        </header>
+        <main class="main-content">
+            <div id="group-detail-device-list"></div>
+            <button class="add-button" id="add-device-button"><i class="fas fa-plus"></i> Update Devices</button>
+        </main>
+    </div>
+    
+    <!-- Screen 3: Add/Move Device View -->
+    <div id="add-device-screen" class="app-screen hidden">
+        <header class="app-header">
+            <button class="header-button" id="cancel-add-device-button"><i class="fas fa-times"></i></button>
+            <h1>Update Devices</h1>
+            <button class="header-button" id="save-add-device-button"><i class="fas fa-check"></i></button>
+        </header>
+        <main class="main-content" id="add-device-list-container"></main>
+    </div>
+
+    <!-- Screen 4: Settings -->
+    <div id="settings-screen" class="app-screen hidden">
+        <header class="app-header">
+             <button class="header-button" id="back-to-dashboard-from-settings-button"><i class="fas fa-chevron-left"></i></button>
+             <h1 style="position: absolute; left: 50%; transform: translateX(-50%);">Settings</h1>
+             <div style="width: 24px;"></div> <!-- Placeholder -->
+        </header>
+        <main class="main-content">
+            <h2>Appearance</h2>
+            <div class="card">
+                <div class="settings-item">
+                    <span>Dark Mode</span>
+                    <label class="theme-toggle">
+                        <input type="checkbox" id="theme-toggle-input">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                 <div class="settings-item">
+                    <span>Hide Empty Groups</span>
+                    <label class="theme-toggle">
+                        <input type="checkbox" id="hide-empty-groups-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            <h2>Policies</h2>
+            <div class="card">
+                <div class="settings-item">
+                    <span>Restricted Speed (Upload)</span>
+                    <div class="speed-control">
+                         <input type="number" id="restricted-up-speed" min="0">
+                         <span>Mbps</span>
+                    </div>
+                </div>
+                 <div class="settings-item">
+                    <span>Restricted Speed (Download)</span>
+                    <div class="speed-control">
+                         <input type="number" id="restricted-down-speed" min="0">
+                         <span>Mbps</span>
+                    </div>
+                </div>
+            </div>
+            <h2>Network</h2>
+            <div class="card">
+                <button id="refresh-device-list-btn">Refresh Device List</button>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Modal for confirmations -->
+<div id="confirmation-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h3 id="modal-title">Are you sure?</h3>
+        <p id="modal-message">This action cannot be undone.</p>
+        <div id="modal-device-list" class="hidden"></div>
+        <div class="modal-buttons">
+            <button id="modal-cancel-button" class="modal-cancel-btn">Cancel</button>
+            <button id="modal-confirm-button" class="modal-confirm-btn">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for adding a group -->
+<div id="add-group-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h3>Add New Group</h3>
+        <p>Enter a unique name for the new group.</p>
+        <input type="text" id="add-group-modal-input" placeholder="Group Name">
+        <p id="add-group-modal-error"></p>
+        <div class="modal-buttons">
+            <button id="add-group-modal-cancel" class="modal-cancel-btn">Cancel</button>
+            <button id="add-group-modal-confirm" class="modal-confirm-btn">Add Group</button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- SIMULATED NETWORK DATA ---
+    const newlyDiscoveredDevices = [
+        { name: "New Smart TV", mac: "AB:CD:EF:12:34:56", icon: 'fa-tv' },
+        { name: "Guest Laptop", mac: "11:22:33:44:55:66", icon: 'fa-laptop' }
+    ];
+
+    // --- APP STATE & DATA ---
+    let appData = {
+        groupOrder: ["group-1", "group-2", "group-3", "group-other", "group-unused"],
+        groups: {
+            "group-other": { name: "Other Devices", policy: "blocked", devices: [], isSpecial: true },
+            "group-unused": { name: "Unused Devices", policy: "blocked", devices: [], isSpecial: true },
+            "group-1": { name: "Lucy's Devices", policy: "full", devices: [ { id: "dev-1", name: "Lucy's iPhone", icon: "fa-mobile-alt", ap: "Living Room AP", time: "Connected for 3 hours", online: true, ip: "192.168.1.101", mac: "A1:B2:C3:D4:E5:F6", ssid: "HomeWiFi-5G" } ] },
+            "group-2": { name: "Emilia's Devices", policy: "restricted", devices: [ { id: "dev-2", name: "Emilia's iPad", icon: "fa-tablet-alt", ap: "Kitchen AP", time: "Connected for 45 minutes", online: true, ip: "192.168.1.102", mac: "B2:C3:D4:E5:F6:A1", ssid: "HomeWiFi-2.4G" } ] },
+            "group-3": { name: "Thomas's Devices", policy: "blocked", devices: [ { id: "dev-3", name: "Thomas's Console", icon: "fa-gamepad", ap: "Offline", time: "Last seen at 10 PM", online: false, ip: "192.168.1.103", mac: "C3:D4:E5:F6:A1:B2", ssid: "HomeWiFi-5G" } ] }
+        },
+        settings: {
+            theme: 'light',
+            hideEmptyGroups: true,
+            restrictedUpSpeed: 5,
+            restrictedDownSpeed: 10
+        }
+    };
+
+    let stagedAppData = JSON.parse(JSON.stringify(appData));
+    let initialDeviceSelections = new Set();
+
+    // --- CACHED ELEMENTS ---
+    const phoneScreen = document.querySelector('.phone-screen');
+    const screens = { dashboard: document.getElementById('group-dashboard-screen'), detail: document.getElementById('group-detail-screen'), settings: document.getElementById('settings-screen'), addDevice: document.getElementById('add-device-screen') };
+    const groupListContainer = document.getElementById('group-list-container');
+    const detailDeviceList = document.getElementById('group-detail-device-list');
+    const detailTitle = document.getElementById('group-detail-title');
+    const editGroupTitleButton = document.getElementById('edit-group-title-button');
+    const backToDashboardButton = document.getElementById('back-to-dashboard-button');
+    const settingsButton = document.getElementById('settings-button');
+    const backFromSettingsButton = document.getElementById('back-to-dashboard-from-settings-button');
+    const addDeviceButton = document.getElementById('add-device-button');
+    const commitChangesButton = document.getElementById('commit-changes-button');
+    const addDeviceListContainer = document.getElementById('add-device-list-container');
+    const cancelAddDeviceButton = document.getElementById('cancel-add-device-button');
+    const saveAddDeviceButton = document.getElementById('save-add-device-button');
+    
+    // Settings elements
+    const themeToggle = document.getElementById('theme-toggle-input');
+    const hideEmptyGroupsToggle = document.getElementById('hide-empty-groups-toggle');
+    const upSpeedInput = document.getElementById('restricted-up-speed');
+    const downSpeedInput = document.getElementById('restricted-down-speed');
+    const refreshDeviceListBtn = document.getElementById('refresh-device-list-btn');
+
+    // Modal elements
+    const confirmModal = document.getElementById('confirmation-modal');
+    const confirmModalTitle = document.getElementById('modal-title');
+    const confirmModalMessage = document.getElementById('modal-message');
+    const confirmModalDeviceList = document.getElementById('modal-device-list');
+    const confirmModalBtn = document.getElementById('modal-confirm-button');
+    const confirmModalCancelBtn = document.getElementById('modal-cancel-button');
+
+    const addGroupModal = document.getElementById('add-group-modal');
+    const addGroupModalInput = document.getElementById('add-group-modal-input');
+    const addGroupModalError = document.getElementById('add-group-modal-error');
+    const addGroupModalConfirmBtn = document.getElementById('add-group-modal-confirm');
+    const addGroupModalCancelBtn = document.getElementById('add-group-modal-cancel');
+
+
+    // --- INITIALIZATION ---
+    function initializeApp() {
+        applyTheme(appData.settings.theme);
+        syncMainToStaged();
+        renderGroupDashboard();
+        renderSettings();
+        checkForPolicyChanges();
+    }
+    
+    initializeApp();
+
+    // --- CHANGE DETECTION & STATE MANAGEMENT ---
+    function checkForPolicyChanges() {
+        let policyChanged = false;
+        for (const groupId in appData.groups) {
+            if (stagedAppData.groups[groupId] && appData.groups[groupId].policy !== stagedAppData.groups[groupId].policy) {
+                policyChanged = true;
+                break;
+            }
+        }
+        commitChangesButton.classList.toggle('disabled', !policyChanged);
+        commitChangesButton.style.color = policyChanged ? 'var(--color-green)' : 'var(--border-color)';
+    }
+
+    function syncMainToStaged() {
+        stagedAppData = JSON.parse(JSON.stringify(appData));
+    }
+
+    // --- RENDER FUNCTIONS ---
+    function renderGroupDashboard() {
+        groupListContainer.innerHTML = '';
+        
+        const visibleGroupIds = appData.settings.hideEmptyGroups 
+            ? appData.groupOrder.filter(id => appData.groups[id] && appData.groups[id].devices.length > 0)
+            : appData.groupOrder;
+
+        visibleGroupIds.forEach(groupId => {
+            const group = stagedAppData.groups[groupId];
+            if (!group) return;
+
+            const onlineCount = group.devices.filter(d => d.online).length;
+            const card = document.createElement('div');
+            const hasPolicyChanged = appData.groups[groupId] && appData.groups[groupId].policy !== group.policy;
+            card.className = `card group-card ${hasPolicyChanged ? 'policy-changed' : ''}`;
+            card.dataset.groupId = groupId;
+            card.draggable = true;
+
+            card.innerHTML = `
+                <div class="group-card-main">
+                    <div class="group-card-header">
+                        <h3>${group.name}</h3>
+                        <div class="group-header-controls">
+                            <span class="device-summary">${onlineCount} of ${group.devices.length} devices online</span>
+                            ${!group.isSpecial ? '<button class="edit-group-btn"><i class="fas fa-pencil-alt"></i></button>' : ''}
+                        </div>
+                    </div>
+                    <div class="policy-controller">
+                        <button class="btn-full ${group.policy === 'full' ? 'selected' : ''}" data-policy="full">Full Speed</button>
+                        <button class="btn-restricted ${group.policy === 'restricted' ? 'selected' : ''}" data-policy="restricted">Restricted</button>
+                        <button class="btn-blocked ${group.policy === 'blocked' ? 'selected' : ''}" data-policy="blocked">Blocked</button>
+                    </div>
+                </div>
+                <div class="group-card-expanded-content">
+                    <div class="group-edit-controls">
+                        <div class="group-name-input-wrapper">
+                            <label for="group-name-${groupId}">Group Name</label>
+                            <input type="text" id="group-name-${groupId}" class="group-name-input" value="${group.name}">
+                        </div>
+                        <button class="delete-group-btn">Delete Group</button>
+                    </div>
+                </div>
+            `;
+            groupListContainer.appendChild(card);
+            
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('button, input, .edit-group-btn')) return;
+                navigateTo('detail', groupId);
+            });
+
+            if (!group.isSpecial) {
+                card.querySelector('.edit-group-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    card.classList.toggle('expanded');
+                });
+
+                const nameInput = card.querySelector('.group-name-input');
+                nameInput.addEventListener('blur', () => {
+                    appData.groups[groupId].name = nameInput.value;
+                    syncMainToStaged();
+                    renderGroupDashboard();
+                });
+                nameInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') nameInput.blur();
+                });
+
+                card.querySelector('.delete-group-btn').addEventListener('click', () => removeGroup(groupId));
+            }
+
+            // Drag and Drop Listeners
+            card.addEventListener('dragstart', handleGroupDragStart);
+            card.addEventListener('dragover', handleDragOver);
+            card.addEventListener('dragleave', handleDragLeave);
+            card.addEventListener('drop', handleGroupDrop);
+            card.addEventListener('dragend', handleDragEnd);
+
+            card.querySelectorAll('.policy-controller button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    stagedAppData.groups[groupId].policy = button.dataset.policy;
+                    button.parentElement.querySelector('.selected')?.classList.remove('selected');
+                    button.classList.add('selected');
+                    card.classList.toggle('policy-changed', appData.groups[groupId].policy !== button.dataset.policy);
+                    checkForPolicyChanges();
+                });
+            });
+        });
+
+        const addGroupBtnEl = document.createElement('button');
+        addGroupBtnEl.className = 'add-button';
+        addGroupBtnEl.id = 'add-group-button-main';
+        addGroupBtnEl.innerHTML = '<i class="fas fa-plus"></i> Add Group';
+        addGroupBtnEl.addEventListener('click', handleAddGroup);
+        groupListContainer.appendChild(addGroupBtnEl);
+    }
+
+    function renderGroupDetail(groupId) {
+        const group = appData.groups[groupId];
+        if (!group) return;
+
+        detailTitle.textContent = group.name;
+        editGroupTitleButton.classList.toggle('hidden', !!group.isSpecial);
+        screens.detail.dataset.currentGroup = groupId;
+        detailDeviceList.innerHTML = ''; 
+        
+        group.devices.forEach(device => {
+            const deviceElement = document.createElement('div');
+            deviceElement.className = `card device-card ${device.online ? '' : 'offline'}`;
+            deviceElement.dataset.deviceId = device.id;
+            deviceElement.draggable = true;
+
+            const allOtherGroupIds = appData.groupOrder.filter(id => id !== groupId);
+            const populatedGroups = allOtherGroupIds.filter(id => appData.groups[id].devices.length > 0);
+            const emptyGroups = allOtherGroupIds.filter(id => appData.groups[id].devices.length === 0);
+            
+            const populatedOptions = populatedGroups.map(id => `<option value="${id}">${appData.groups[id].name}</option>`).join('');
+            const emptyOptions = emptyGroups.map(id => `<option value="${id}">${appData.groups[id].name}</option>`).join('');
+            const separator = (populatedOptions.length > 0 && emptyOptions.length > 0) ? `<option disabled>---</option>` : '';
+            const moveOptionsHTML = populatedOptions + separator + emptyOptions;
+
+            deviceElement.innerHTML = `
+                <div class="device-card-main">
+                    <div class="device-icon"><i class="fas ${device.icon}"></i></div>
+                    <div class="device-details">
+                        <div class="device-name-header">
+                            <h4 data-testid="device-name-heading">${device.name}</h4>
+                             <button class="delete-device-btn-header hidden"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                        <p>${device.online ? `Connected to: <b>${device.ap}</b>` : 'Offline'}</p>
+                        <p>${device.time}</p>
+                    </div>
+                </div>
+                <div class="device-card-expanded-content">
+                    <div class="expanded-details-grid">
+                        <span>SSID</span><span>${device.ssid || 'N/A'}</span>
+                        <span>IP Address</span><span>${device.ip}</span>
+                        <span>MAC Address</span><span>${device.mac}</span>
+                    </div>
+                    <div class="expanded-controls">
+                        <select class="move-device-select">
+                            <option value="" disabled selected>Move to another group...</option>
+                            ${moveOptionsHTML}
+                        </select>
+                    </div>
+                </div>`;
+            
+            const deleteBtn = deviceElement.querySelector('.delete-device-btn-header');
+
+            deviceElement.addEventListener('click', (e) => {
+                if (e.target.closest('button, select, input')) return;
+                
+                const isExpanded = deviceElement.classList.toggle('expanded');
+                deleteBtn.classList.toggle('hidden', !isExpanded);
+
+                const header = deviceElement.querySelector('.device-name-header');
+                const currentInput = header.querySelector('.device-name-input');
+
+                if (isExpanded) {
+                    if (!currentInput) {
+                        const heading = header.querySelector('h4');
+                        const currentName = heading.textContent;
+                        
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.className = 'device-name-input';
+                        input.value = currentName;
+                        
+                        header.replaceChild(input, heading);
+                        input.focus();
+                        input.select();
+
+                        const saveChange = () => {
+                            const newName = input.value.trim();
+                            if (newName && newName !== currentName) {
+                                device.name = newName;
+                                syncMainToStaged();
+                            }
+                            if (header.contains(input)) {
+                               const newHeading = document.createElement('h4');
+                               newHeading.textContent = device.name;
+                               header.replaceChild(newHeading, input);
+                            }
+                        };
+
+                        input.addEventListener('blur', saveChange);
+                        input.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter') input.blur();
+                            else if (e.key === 'Escape') {
+                                input.value = currentName;
+                                input.blur();
+                            }
+                        });
+                    }
+                } else {
+                    if (currentInput) {
+                        currentInput.blur();
+                    }
+                }
+            });
+
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showConfirmationModal( 'Delete Device?', `Are you sure you want to permanently delete ${device.name}?`, () => removeDevice(groupId, device.id) );
+            });
+
+            deviceElement.querySelector('.move-device-select').addEventListener('change', (e) => {
+                const targetGroupId = e.target.value;
+                if (targetGroupId) moveDevice(groupId, device.id, targetGroupId);
+            });
+
+            // Add drag listeners for devices
+            deviceElement.addEventListener('dragstart', handleDeviceDragStart);
+            deviceElement.addEventListener('dragover', handleDragOver);
+            deviceElement.addEventListener('dragleave', handleDragLeave);
+            deviceElement.addEventListener('drop', handleDeviceDrop);
+            deviceElement.addEventListener('dragend', handleDragEnd);
+
+            detailDeviceList.appendChild(deviceElement);
+        });
+    }
+
+    function renderAddDeviceScreen(currentGroupId) {
+        addDeviceListContainer.innerHTML = '';
+        initialDeviceSelections.clear();
+        const currentGroupDeviceIds = appData.groups[currentGroupId].devices.map(d => d.id);
+        currentGroupDeviceIds.forEach(id => initialDeviceSelections.add(id));
+
+        appData.groupOrder.forEach(groupId => {
+            const group = appData.groups[groupId];
+            if (group.devices.length === 0) return;
+
+            const groupSection = document.createElement('div');
+            groupSection.className = 'device-selection-group';
+            groupSection.innerHTML = `<h3>${group.name}</h3>`;
+
+            group.devices.forEach(device => {
+                const isMember = currentGroupDeviceIds.includes(device.id);
+                const item = document.createElement('div');
+                item.className = 'device-selection-item';
+                item.innerHTML = `
+                    <input type="checkbox" id="select-${device.id}" data-device-id="${device.id}" data-source-group="${groupId}" ${isMember ? 'checked' : ''}>
+                    <label for="select-${device.id}">
+                        <strong>${device.name}</strong>
+                        <span>${device.mac}</span>
+                    </label>
+                `;
+                groupSection.appendChild(item);
+
+                if(isMember) {
+                    item.querySelector('input').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        showConfirmationModal(
+                            'Remove Device?', 
+                            `Are you sure you want to remove "${device.name}" from this group? It will be moved to 'Other Devices'.`,
+                            () => { e.target.checked = false; },
+                            'Remove'
+                        );
+                    });
+                }
+            });
+            addDeviceListContainer.appendChild(groupSection);
+        });
+    }
+
+    function renderSettings() {
+        themeToggle.checked = appData.settings.theme === 'dark';
+        hideEmptyGroupsToggle.checked = appData.settings.hideEmptyGroups;
+        upSpeedInput.value = appData.settings.restrictedUpSpeed;
+        downSpeedInput.value = appData.settings.restrictedDownSpeed;
+    }
+
+
+    // --- DRAG & DROP LOGIC ---
+    let draggedItem = null;
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        const target = e.target.closest('.card[draggable="true"]');
+        if (target && target !== draggedItem) {
+            target.classList.add('drag-over');
+        }
+    }
+
+    function handleDragLeave(e) {
+        e.target.closest('.card[draggable="true"]')?.classList.remove('drag-over');
+    }
+    
+    function handleDragEnd() {
+        if (draggedItem) {
+            draggedItem.classList.remove('dragging');
+        }
+        draggedItem = null;
+        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    }
+
+    // Group Drag Handlers
+    function handleGroupDragStart(e) {
+        draggedItem = e.target.closest('.group-card');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', draggedItem.dataset.groupId);
+        setTimeout(() => { draggedItem.classList.add('dragging'); }, 0);
+    }
+
+    function handleGroupDrop(e) {
+        e.preventDefault();
+        const targetCard = e.target.closest('.group-card');
+        if (!targetCard || !draggedItem || targetCard === draggedItem) return;
+
+        const allIds = appData.groupOrder;
+        const fromIndex = allIds.indexOf(draggedItem.dataset.groupId);
+        const toIndex = allIds.indexOf(targetCard.dataset.groupId);
+
+        const [movedId] = allIds.splice(fromIndex, 1);
+        allIds.splice(toIndex, 0, movedId);
+        
+        syncMainToStaged();
+        renderGroupDashboard();
+    }
+
+    // Device Drag Handlers
+    function handleDeviceDragStart(e) {
+        draggedItem = e.target.closest('.device-card');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', draggedItem.dataset.deviceId);
+        setTimeout(() => { draggedItem.classList.add('dragging'); }, 0);
+    }
+
+    function handleDeviceDrop(e) {
+        e.preventDefault();
+        const targetCard = e.target.closest('.device-card');
+        if (!targetCard || !draggedItem || targetCard === draggedItem) return;
+
+        const groupId = screens.detail.dataset.currentGroup;
+        const deviceList = appData.groups[groupId].devices;
+        const allIds = deviceList.map(d => d.id);
+
+        const fromIndex = allIds.indexOf(draggedItem.dataset.deviceId);
+        const toIndex = allIds.indexOf(targetCard.dataset.deviceId);
+
+        const [movedItem] = deviceList.splice(fromIndex, 1);
+        deviceList.splice(toIndex, 0, movedItem);
+
+        syncMainToStaged();
+        renderGroupDetail(groupId);
+    }
+
+    // --- NAVIGATION & THEME ---
+    function applyTheme(theme) {
+        phoneScreen.dataset.theme = theme;
+        appData.settings.theme = theme;
+        themeToggle.checked = theme === 'dark';
+    }
+
+    function navigateTo(screenKey, context = null) {
+        Object.values(screens).forEach(s => s.classList.add('hidden'));
+        screens[screenKey]?.classList.remove('hidden');
+        if (screenKey === 'detail') {
+            renderGroupDetail(context);
+        } else if (screenKey === 'settings') {
+            renderSettings();
+        } else if (screenKey === 'addDevice') {
+            renderAddDeviceScreen(context);
+        }
+    }
+    
+    settingsButton.addEventListener('click', () => navigateTo('settings'));
+    backToDashboardButton.addEventListener('click', () => {
+        syncMainToStaged();
+        renderGroupDashboard();
+        navigateTo('dashboard');
+    });
+    backFromSettingsButton.addEventListener('click', () => navigateTo('dashboard'));
+
+
+    // --- MODAL LOGIC ---
+    let confirmCallback = null;
+    function showConfirmationModal(title, message, onConfirm, confirmText = 'Confirm') {
+        confirmModalTitle.textContent = title;
+        confirmModalMessage.textContent = message;
+        confirmModalDeviceList.classList.add('hidden');
+        confirmModalBtn.textContent = confirmText;
+        confirmModalCancelBtn.classList.remove('hidden');
+        confirmModalBtn.classList.remove('hidden');
+
+        confirmCallback = onConfirm;
+        confirmModal.classList.add('visible');
+    }
+    function hideConfirmationModal() {
+        confirmModal.classList.remove('visible');
+        confirmCallback = null;
+    }
+    confirmModalBtn.addEventListener('click', () => {
+        if (confirmCallback) confirmCallback();
+        hideConfirmationModal();
+    });
+    confirmModalCancelBtn.addEventListener('click', hideConfirmationModal);
+
+    function showAddGroupModal() {
+        addGroupModalInput.value = '';
+        addGroupModalError.textContent = '';
+        addGroupModal.classList.add('visible');
+        addGroupModalInput.focus();
+    }
+
+    function hideAddGroupModal() {
+        addGroupModal.classList.remove('visible');
+    }
+
+    // --- DATA MANAGEMENT LOGIC (INSTANT ACTIONS) ---
+    function removeGroup(groupId) {
+        showConfirmationModal( 'Delete Group?', `Are you sure you want to delete "${appData.groups[groupId].name}"? Its devices will be moved to 'Other Devices'.`, () => {
+                const devicesToMove = appData.groups[groupId].devices;
+                appData.groups["group-other"].devices.push(...devicesToMove);
+                delete appData.groups[groupId];
+                appData.groupOrder = appData.groupOrder.filter(id => id !== groupId);
+                syncMainToStaged();
+                renderGroupDashboard();
+            }
+        );
+    }
+    
+    function removeDevice(groupId, deviceId) {
+        const group = appData.groups[groupId];
+        if (group) {
+            group.devices = group.devices.filter(d => d.id !== deviceId);
+            syncMainToStaged();
+            renderGroupDetail(groupId);
+        }
+    }
+
+    function moveDevice(currentGroupId, deviceId, targetGroupId) {
+        const currentGroup = appData.groups[currentGroupId];
+        const targetGroup = appData.groups[targetGroupId];
+        if (!currentGroup || !targetGroup) return;
+
+        const deviceIndex = currentGroup.devices.findIndex(d => d.id === deviceId);
+        if (deviceIndex === -1) return;
+
+        const [deviceToMove] = currentGroup.devices.splice(deviceIndex, 1);
+        targetGroup.devices.push(deviceToMove);
+
+        syncMainToStaged();
+        renderGroupDetail(currentGroupId); // Re-render current page to show device is gone
+    }
+    
+    function handleAddGroup() {
+        showAddGroupModal();
+    }
+
+    function submitAddGroup() {
+        const name = addGroupModalInput.value.trim();
+        addGroupModalError.textContent = '';
+
+        if (!name) {
+            addGroupModalError.textContent = 'Group name cannot be empty.';
+            return;
+        }
+        if (!/[a-zA-Z0-9]/.test(name)) {
+            addGroupModalError.textContent = 'Name must contain letters or numbers.';
+            return;
+        }
+        const isUnique = !Object.values(appData.groups).some(group => group.name.toLowerCase() === name.toLowerCase());
+        if (!isUnique) {
+            addGroupModalError.textContent = 'This group name already exists.';
+            return;
+        }
+
+        const newGroupId = `group-${Date.now()}`;
+        appData.groups[newGroupId] = { name: name, policy: 'full', devices: [] };
+        const specialIndex = appData.groupOrder.findIndex(id => appData.groups[id].isSpecial);
+        if (specialIndex > -1) {
+            appData.groupOrder.splice(specialIndex, 0, newGroupId);
+        } else {
+            appData.groupOrder.push(newGroupId);
+        }
+        syncMainToStaged();
+        hideAddGroupModal();
+        navigateTo('detail', newGroupId);
+    }
+
+    function handleSaveDevices() {
+        const targetGroupId = screens.detail.dataset.currentGroup;
+        const checkboxes = addDeviceListContainer.querySelectorAll('input[type="checkbox"]');
+        
+        checkboxes.forEach(cb => {
+            const deviceId = cb.dataset.deviceId;
+            const sourceGroupId = cb.dataset.sourceGroup;
+            const isChecked = cb.checked;
+            
+            // Find the device object
+            const sourceGroup = appData.groups[sourceGroupId];
+            const deviceIndex = sourceGroup.devices.findIndex(d => d.id === deviceId);
+            const device = sourceGroup.devices[deviceIndex];
+
+            if (!device) return;
+
+            const isCurrentlyInTarget = sourceGroupId === targetGroupId;
+
+            if (isChecked && !isCurrentlyInTarget) {
+                // Move to target group
+                appData.groups[targetGroupId].devices.push(device);
+                sourceGroup.devices.splice(deviceIndex, 1);
+            } else if (!isChecked && isCurrentlyInTarget) {
+                // Move from target group to 'Other Devices'
+                appData.groups['group-other'].devices.push(device);
+                sourceGroup.devices.splice(deviceIndex, 1);
+            }
+        });
+
+        syncMainToStaged();
+        navigateTo('detail', targetGroupId);
+    }
+
+    function handleRefreshDeviceList() {
+        const allKnownMacs = Object.values(appData.groups).flatMap(g => g.devices).map(d => d.mac);
+        const newDevices = newlyDiscoveredDevices.filter(d => !allKnownMacs.includes(d.mac));
+
+        confirmModalBtn.textContent = 'Confirm';
+        confirmModalCancelBtn.classList.remove('hidden');
+        confirmModalDeviceList.classList.add('hidden');
+
+
+        if (newDevices.length === 0) {
+            showConfirmationModal('Refresh Complete', 'No new devices were found on the network.', () => {});
+            confirmModalBtn.textContent = 'OK';
+            confirmModalCancelBtn.classList.add('hidden');
+        } else {
+            const message = 'The following new devices were found. Add them to "Unused Devices"?';
+            const deviceListHtml = '<ul>' + newDevices.map(d => `<li><strong>${d.name}</strong> (${d.mac})</li>`).join('') + '</ul>';
+            
+            showConfirmationModal('New Devices Found', message, () => {
+                newDevices.reverse().forEach(d => {
+                    const newDevice = {
+                        id: `dev-${Date.now()}-${Math.random()}`,
+                        name: d.name,
+                        icon: d.icon,
+                        ap: 'Offline',
+                        time: 'Just discovered',
+                        online: false,
+                        ip: "N/A",
+                        mac: d.mac,
+                        ssid: "N/A"
+                    };
+                    appData.groups['group-unused'].devices.unshift(newDevice);
+                });
+                syncMainToStaged();
+                renderGroupDashboard();
+            }, 'Add');
+            confirmModalDeviceList.innerHTML = deviceListHtml;
+            confirmModalDeviceList.classList.remove('hidden');
+        }
+    }
+
+    // --- EVENT LISTENERS ---
+    addDeviceButton.addEventListener('click', () => {
+        const currentGroupId = screens.detail.dataset.currentGroup;
+        navigateTo('addDevice', currentGroupId);
+    });
+    cancelAddDeviceButton.addEventListener('click', () => {
+        const currentGroupId = screens.detail.dataset.currentGroup;
+        const currentSelections = new Set(
+            [...addDeviceListContainer.querySelectorAll('input[type="checkbox"]:checked')].map(cb => cb.dataset.deviceId)
+        );
+
+        let hasChanged = initialDeviceSelections.size !== currentSelections.size || 
+            [...initialDeviceSelections].some(id => !currentSelections.has(id));
+
+        if (hasChanged) {
+            showConfirmationModal(
+                'Discard Changes?',
+                'You have unsaved changes. Are you sure you want to leave?',
+                () => navigateTo('detail', currentGroupId),
+                'Discard'
+            );
+        } else {
+            navigateTo('detail', currentGroupId);
+        }
+    });
+    saveAddDeviceButton.addEventListener('click', handleSaveDevices);
+
+    addGroupModalConfirmBtn.addEventListener('click', submitAddGroup);
+    addGroupModalCancelBtn.addEventListener('click', hideAddGroupModal);
+    addGroupModalInput.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter') submitAddGroup();
+    });
+
+    commitChangesButton.addEventListener('click', () => {
+        if (commitChangesButton.classList.contains('disabled')) return;
+        // Commit staged policy changes to appData
+        for (const groupId in stagedAppData.groups) {
+            if (appData.groups[groupId]) {
+                appData.groups[groupId].policy = stagedAppData.groups[groupId].policy;
+            }
+        }
+        syncMainToStaged();
+        checkForPolicyChanges();
+        renderGroupDashboard();
+    });
+
+    editGroupTitleButton.addEventListener('click', () => {
+        const groupId = screens.detail.dataset.currentGroup;
+        const group = appData.groups[groupId];
+        if(!group || group.isSpecial) return;
+
+        const wrapper = document.getElementById('group-detail-header-title-wrapper');
+        const heading = document.getElementById('group-detail-title');
+        const editButton = document.getElementById('edit-group-title-button');
+        const currentName = heading.textContent;
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'group-detail-title-input';
+        input.value = currentName;
+
+        wrapper.replaceChild(input, heading);
+        editButton.classList.add('hidden');
+        input.focus();
+        input.select();
+
+        const saveChange = () => {
+            const newName = input.value.trim();
+            if (newName && newName !== currentName) {
+                group.name = newName;
+                syncMainToStaged();
+            }
+            heading.textContent = group.name;
+            wrapper.replaceChild(heading, input);
+            editButton.classList.remove('hidden');
+        };
+
+        input.addEventListener('blur', saveChange);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') input.blur();
+            else if (e.key === 'Escape') {
+                input.value = currentName;
+                input.blur();
+            }
+        });
+    });
+
+    // Settings Listeners
+    themeToggle.addEventListener('change', () => {
+        applyTheme(themeToggle.checked ? 'dark' : 'light');
+    });
+    hideEmptyGroupsToggle.addEventListener('change', () => {
+        appData.settings.hideEmptyGroups = hideEmptyGroupsToggle.checked;
+        syncMainToStaged();
+        renderGroupDashboard();
+    });
+    upSpeedInput.addEventListener('input', () => {
+        appData.settings.restrictedUpSpeed = upSpeedInput.value;
+    });
+    downSpeedInput.addEventListener('input', () => {
+        appData.settings.restrictedDownSpeed = downSpeedInput.value;
+    });
+    refreshDeviceListBtn.addEventListener('click', handleRefreshDeviceList);
+});
+</script>
+
+</body>
+</html>
