@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Breakout - Core Fixed</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #111; color: white; font-family: 'Inter', sans-serif; -webkit-user-select: none; user-select: none; }
+        #game-container { position: relative; width: 100vw; height: 100vh; }
+        canvas { display: block; }
+        #ui-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        #info { position: absolute; top: 10px; width: 100%; text-align: center; z-index: 100; font-size: clamp(1rem, 2.5vw, 1.5rem); text-shadow: 2px 2px 4px #000; display: flex; justify-content: space-around; }
+        #gameOverScreen {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            pointer-events: all;
+        }
+        #gameOverScreen.hidden { display: none; }
+        #gameOverScreen h1 { font-size: 4em; margin-bottom: 20px; text-shadow: 3px 3px 6px #000; }
+        .game-button {
+            padding: 12px 28px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            pointer-events: all;
+            background: linear-gradient(145deg, #2c2c2c, #1a1a1a);
+            color: #00BFFF;
+            border: 2px solid #00BFFF;
+            border-radius: 50px;
+            box-shadow: 0 5px 15px rgba(0, 191, 255, 0.2), inset 0 -2px 5px rgba(0,0,0,0.5);
+            text-shadow: 0 0 10px #00BFFF;
+            transition: all 0.2s ease-in-out;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="game-container">
+        <div id="ui-container">
+            <div id="info">
+                <span id="score">Score: 0</span>
+                <span id="level">Level: 1</span>
+                <span id="lives">Lives: 3</span>
+            </div>
+            <div id="gameOverScreen" class="hidden">
+                <h1>Game Over</h1>
+                <button id="restartButton" class="game-button">Play Again</button>
+            </div>
+        </div>
+    </div>
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+        import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+
+        // --- CORE VARIABLES ---
+        let scene, camera, renderer;
+        let paddle, font;
+        let bricks = [], balls = [], powerUps = [], particleSystems = [], announcements = [];
+        let animationId;
+        
+        // --- UI ELEMENTS ---
+        const gameContainer = document.getElementById('game-container');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const restartButton = document.getElementById('restartButton');
+
+        // --- CONSTANTS & GAME STATE ---
+        const gameWidth = 18, paddleWidth = 4, ballRadius = 0.5;
+        const PADDLE_SPEED = 0.4;
+        const MAX_BALL_SPEED = 0.5;
+        const PADDLE_Y = 15;
+        const PLAYFIELD_BOTTOM = -15; 
+        const gameState = { score: 0, level: 1, lives: 3, isGameOver: false, activePowerUps: new Set() };
+        const levelDesigns = [ "1111111","1222221","1233321","1233321","1222221","1111111", "0001000","0012100","0123210","1233321","0000000","0000000", "3131313","1313131","3131313","1313131","3131313","1313131" ];
+        const powerUpTypes = {
+            largePaddle: { color: 0xffd700, text: "PADDLE UP!" },
+            multiBall: { color: 0x44aaff, text: "MULTI-BALL!" },
+            slowBall: { color: 0x44ffaa, text: "SLOW DOWN!" },
+        };
+        const materials = {};
+        
+        // --- INITIALIZATION ---
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            gameContainer.insertBefore(renderer.domElement, gameContainer.firstChild);
+            
+            setupMaterials();
+            
+            const fontLoader = new FontLoader();
+            fontLoader.load('https://cdn.jsdelivr.net/npm/three@0.158.0/examples/fonts/helvetiker_bold.typeface.json', (loadedFont) => {
+                font = loadedFont;
+            });
+
+            restartButton.addEventListener('click', startGame);
+            window.addEventListener('resize', onWindowResize);
+            
+            createGameScenery();
+            startGame(); // Start the game immediately
+            animate();
+        }
+        
+        function startGame() {
+            gameOverScreen.classList.add('hidden');
+            
+            gameState.score = 0;
+            gameState.level = 1;
+            gameState.lives = 3;
+            gameState.isGameOver = false;
+            gameState.activePowerUps.clear();
+            
+            if (paddle) deactivatePowerUp('largePaddle', true);
+
+            startLevel();
+        }
+
+        function startLevel() {
+            clearLevelObjects();
+            deactivatePowerUp('slowBall', true);
+            createBricksFromDesign();
+            addBall();
+            updateUI();
+        }
+        
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            
+            if (!gameState.isGameOver) {
+                 updateGameObjects();
+                 checkCollisions();
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        // --- PARTICLE SYSTEM ---
+        class ParticleSystem {
+            constructor(parentScene, position, color, count = 20) {
+                this.particles = [];
+                this.parentScene = parentScene;
+                const particleGeo = new THREE.SphereGeometry(0.1, 8, 8);
+                const particleMat = new THREE.MeshBasicMaterial({ color: color, transparent: true });
+
+                for (let i = 0; i < count; i++) {
+                    const particle = new THREE.Mesh(particleGeo.clone(), particleMat.clone());
+                    particle.position.copy(position);
+                    particle.userData.velocity = new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.3, (Math.random()) * 0.4, (Math.random() - 0.5) * 0.3
+                    );
+                    particle.userData.life = 1;
+                    this.parentScene.add(particle);
+                    this.particles.push(particle);
+                }
+            }
+
+            update() {
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const particle = this.particles[i];
+                    particle.userData.life -= 0.02;
+                    particle.userData.velocity.y -= 0.008; // Gravity
+
+                    if (particle.userData.life <= 0) {
+                        this.parentScene.remove(particle);
+                        this.particles.splice(i, 1);
+                    } else {
+                        particle.position.add(particle.userData.velocity);
+                        particle.material.opacity = particle.userData.life;
+                    }
+                }
+                return this.particles.length > 0;
+            }
+        }
+
+        // --- SCENE & OBJECT MANAGEMENT ---
+        function createGameScenery() {
+            scene.background = new THREE.Color(0x111111);
+            const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambient);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+            dirLight.position.set(5, 10, 7.5);
+            scene.add(dirLight);
+            
+            createPaddle();
+            camera.position.set(0, 5, 25);
+            camera.lookAt(0, 0, 0);
+        }
+
+        // FIX: The function now accepts a color parameter
+        function createPowerUpAnnouncement(text, color) {
+            if (!font) return;
+            const textGeo = new TextGeometry(text, { font: font, size: 1.2, height: 0.2 });
+            // FIX: Use the passed color for the material
+            const textMat = new THREE.MeshBasicMaterial({ color: color, transparent: true });
+            const mesh = new THREE.Mesh(textGeo, textMat);
+            textGeo.computeBoundingBox();
+            mesh.position.set(-textGeo.boundingBox.max.x / 2, 2, 10);
+            mesh.userData.life = 1.0;
+            scene.add(mesh);
+            announcements.push(mesh);
+        }
+        
+        function createPaddle() {
+            const geometry = new THREE.BoxGeometry(paddleWidth, 1, 1);
+            paddle = new THREE.Mesh(geometry, materials.paddle.clone());
+            paddle.position.set(0, PADDLE_Y, 0); 
+            scene.add(paddle);
+        }
+
+        function addBall(position) {
+            const ballPosition = position || new THREE.Vector3(paddle.position.x, paddle.position.y - 1, 0);
+            const ball = new THREE.Mesh(new THREE.SphereGeometry(ballRadius, 32, 32), materials.ball.clone());
+            ball.position.copy(ballPosition);
+            
+            let speed = 0.25 + (gameState.level - 1) * 0.01;
+            if (gameState.activePowerUps.has('slowBall')) speed *= 0.6;
+            speed = Math.min(speed, MAX_BALL_SPEED);
+            
+            const angle = (Math.random() - 0.5) * Math.PI / 4;
+            ball.userData.velocity = new THREE.Vector3(Math.sin(angle) * speed, -Math.cos(angle) * speed, 0);
+            balls.push(ball);
+            scene.add(ball);
+        }
+        
+        function createBricksFromDesign() {
+            const brickRows = 6; const brickCols = 7;
+            const brickGeo = new THREE.BoxGeometry(2.2, 1, 1);
+            const startY = -3;
+            const startX = -((brickCols * 2.2 + (brickCols - 1) * 0.3) / 2) + 1.1;
+            const levelIndex = ((gameState.level - 1) * brickRows) % levelDesigns.length;
+            const levelMap = levelDesigns.slice(levelIndex, levelIndex + brickRows);
+
+            for (let i = 0; i < brickRows; i++) {
+                for (let j = 0; j < brickCols; j++) {
+                    const health = parseInt(levelMap[i]?.[j] ?? '0');
+                    if (health > 0) {
+                        const brick = new THREE.Mesh(brickGeo, materials.brick[health - 1].clone());
+                        brick.userData.health = health;
+                        brick.position.set(startX + j * 2.5, startY - i * 1.5, 0);
+                        bricks.push(brick);
+                        scene.add(brick);
+                    }
+                }
+            }
+        }
+
+        function createPowerUp(position) {
+            const types = Object.keys(powerUpTypes);
+            const type = types[Math.floor(Math.random() * types.length)];
+            const geo = new THREE.BoxGeometry(1, 1, 1);
+            const powerUp = new THREE.Mesh(geo, materials.powerUp[type]);
+            powerUp.position.copy(position);
+            powerUp.userData.type = type;
+            powerUp.userData.velocity = new THREE.Vector3(0, 0.08, 0);
+            powerUps.push(powerUp);
+            scene.add(powerUp);
+        }
+        
+        function clearLevelObjects() {
+            [...balls, ...bricks, ...powerUps, ...announcements].forEach(obj => scene.remove(obj));
+            balls = []; bricks = []; powerUps = []; announcements = [];
+            particleSystems.forEach(ps => ps.particles.forEach(p => scene.remove(p)));
+            particleSystems = [];
+        }
+
+        // --- GAME LOGIC & UPDATES ---
+        function updateGameObjects() {
+            balls.forEach((ball, i) => {
+                ball.position.add(ball.userData.velocity);
+                if (ball.position.y > PADDLE_Y + 1) { // Check against paddle's Y
+                    scene.remove(ball);
+                    balls.splice(i, 1);
+                    if (balls.length === 0) handleLifeLost();
+                }
+            });
+            powerUps.forEach((pu, i) => {
+                pu.position.add(pu.userData.velocity);
+                pu.rotation.y += 0.05;
+                if (pu.position.y > PADDLE_Y + 1) { scene.remove(pu); powerUps.splice(i, 1); }
+            });
+            particleSystems.forEach((ps, i) => { if (!ps.update()) particleSystems.splice(i, 1); });
+            
+            announcements.forEach((ann, i) => {
+                ann.userData.life -= 0.008;
+                ann.material.opacity = Math.max(0, ann.userData.life * 2);
+                ann.position.y += 0.03;
+                if (ann.userData.life <= 0) {
+                    scene.remove(ann);
+                    announcements.splice(i, 1);
+                }
+            });
+            
+            updatePaddleAI();
+        }
+        
+        function updatePaddleAI() {
+            if (balls.length === 0) return;
+            let targetX = paddle.position.x;
+
+            const mainBall = balls.reduce((closest, ball) => (!closest || ball.position.y > closest.position.y) ? ball : closest, balls[0]);
+            let closestPowerUp = null;
+            if (powerUps.length > 0) {
+                 closestPowerUp = powerUps.reduce((closest, pu) => (!closest || pu.position.y > closest.position.y) ? pu : closest, powerUps[0]);
+            }
+           
+            const timeToBallHit = mainBall.userData.velocity.y > 0 ? (paddle.position.y - mainBall.position.y) / mainBall.userData.velocity.y : Infinity;
+            
+            let isSafeToGetPowerUp = false;
+            if (closestPowerUp) {
+                const timeToGetPowerUp = Math.abs(paddle.position.x - closestPowerUp.position.x) / PADDLE_SPEED;
+                const timeToReturn = Math.abs(closestPowerUp.position.x - mainBall.position.x) / PADDLE_SPEED;
+                if (timeToGetPowerUp + timeToReturn < timeToBallHit * 0.9) { 
+                    isSafeToGetPowerUp = true;
+                }
+            }
+            
+            if (isSafeToGetPowerUp) { targetX = closestPowerUp.position.x; } 
+            else { targetX = mainBall.position.x; }
+            
+            const paddleLimitX = gameWidth / 2 - (paddleWidth * paddle.scale.x) / 2;
+            const clampedTargetX = THREE.MathUtils.clamp(targetX, -paddleLimitX, paddleLimitX);
+            const diff = clampedTargetX - paddle.position.x;
+            const move = THREE.MathUtils.clamp(diff, -PADDLE_SPEED, PADDLE_SPEED);
+            paddle.position.x += move;
+        }
+
+        function checkCollisions() {
+            const wallLimitX = gameWidth / 2 - ballRadius;
+            
+            balls.forEach(ball => {
+                if (Math.abs(ball.position.x) > wallLimitX) { ball.userData.velocity.x *= -1; }
+                if (ball.position.y < PLAYFIELD_BOTTOM) { ball.userData.velocity.y *= -1; }
+            });
+            
+            const paddleBox = new THREE.Box3().setFromObject(paddle);
+
+            balls.forEach(ball => {
+                if (new THREE.Box3().setFromObject(ball).intersectsBox(paddleBox) && ball.userData.velocity.y > 0) {
+                    ball.userData.velocity.y *= -1;
+                    ball.userData.velocity.x += (ball.position.x - paddle.position.x) * 0.1;
+                    
+                    if (ball.userData.velocity.length() > MAX_BALL_SPEED) {
+                        ball.userData.velocity.normalize().multiplyScalar(MAX_BALL_SPEED);
+                    }
+                }
+            });
+
+            for (let i = bricks.length - 1; i >= 0; i--) {
+                const brick = bricks[i];
+                for (const ball of balls) {
+                    if (new THREE.Box3().setFromObject(ball).intersectsBox(new THREE.Box3().setFromObject(brick))) {
+                        handleBrickHit(brick, i);
+                        ball.userData.velocity.y *= -1;
+                        break; 
+                    }
+                }
+            }
+            
+            for (let i = powerUps.length - 1; i >= 0; i--) {
+                const pu = powerUps[i];
+                 if (new THREE.Box3().setFromObject(pu).intersectsBox(paddleBox)) {
+                    activatePowerUp(pu.userData.type);
+                    scene.remove(pu);
+                    powerUps.splice(i, 1);
+                }
+            }
+
+            if (bricks.length === 0 && balls.length > 0) {
+                gameState.score += 1000;
+                gameState.level++;
+                startLevel();
+            }
+        }
+
+        function handleBrickHit(brick, i) {
+            brick.userData.health--;
+            gameState.score += 25;
+            if (brick.userData.health <= 0) {
+                if (Math.random() < 0.25) createPowerUp(brick.position);
+                gameState.score += 75;
+                particleSystems.push(new ParticleSystem(scene, brick.position, brick.material.color, 30));
+                scene.remove(brick);
+                bricks.splice(i, 1);
+            } else {
+                particleSystems.push(new ParticleSystem(scene, brick.position, brick.material.color, 5));
+                brick.material.color.set(materials.brick[brick.userData.health - 1].color);
+            }
+            updateUI();
+        }
+
+        function activatePowerUp(type) {
+            if (gameState.activePowerUps.has(type) && type !== 'multiBall') return;
+            // FIX: Pass the color to the announcement function
+            const powerUpData = powerUpTypes[type];
+            createPowerUpAnnouncement(powerUpData.text, powerUpData.color);
+            gameState.activePowerUps.add(type);
+
+            if (type === 'largePaddle') {
+                paddle.scale.x = 2;
+                paddle.material = materials.paddlePoweredUp;
+                setTimeout(() => deactivatePowerUp(type), 10000);
+            }
+            if (type === 'slowBall') {
+                balls.forEach(b => b.userData.velocity.multiplyScalar(0.6));
+                setTimeout(() => deactivatePowerUp(type), 10000);
+            }
+            if (type === 'multiBall') {
+                const currentBalls = [...balls];
+                if (currentBalls.length < 9) {
+                    currentBalls.forEach(ball => { addBall(ball.position); addBall(ball.position); });
+                }
+                gameState.activePowerUps.delete(type);
+            }
+        }
+
+        function deactivatePowerUp(type, force = false) {
+             if (!force && !gameState.activePowerUps.has(type)) return;
+             gameState.activePowerUps.delete(type);
+             if (type === 'largePaddle') {
+                paddle.scale.x = 1;
+                paddle.material = materials.paddle;
+             }
+             if (type === 'slowBall' && !force) {
+                balls.forEach(b => {
+                    b.userData.velocity.multiplyScalar(1 / 0.6);
+                    if (b.userData.velocity.length() > MAX_BALL_SPEED) {
+                        b.userData.velocity.normalize().multiplyScalar(MAX_BALL_SPEED);
+                    }
+                });
+             }
+        }
+
+        function handleLifeLost() {
+            gameState.lives--;
+            updateUI();
+            if (gameState.lives <= 0) {
+                gameState.isGameOver = true;
+                gameOverScreen.classList.remove('hidden');
+            } else {
+                setTimeout(addBall, 500);
+            }
+        }
+
+        // --- UTILITIES ---
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.upda
