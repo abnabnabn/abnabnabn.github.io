@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Breakout - UI & Gameplay Fixes</title>
+    <title>3D Breakout</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #111; color: white; font-family: 'Inter', sans-serif; -webkit-user-select: none; user-select: none; }
         #game-container { position: relative; width: 100vw; height: 100vh; }
@@ -102,7 +102,7 @@
 
         // --- CORE VARIABLES ---
         let scene, camera, renderer;
-        let paddle, font;
+        let paddle, font, gameArea;
         let bricks = [], balls = [], powerUps = [], particleSystems = [], announcements = [];
         let animationId, clock;
         let levelTransitionText = null;
@@ -149,6 +149,8 @@
         function init() {
             clock = new THREE.Clock();
             scene = new THREE.Scene();
+            gameArea = new THREE.Group();
+            scene.add(gameArea);
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -197,13 +199,21 @@
         
         function animate() {
             animationId = requestAnimationFrame(animate);
+            const delta = clock.getDelta();
             
             if (gameState.inTransition) {
                  updateLevelTransition();
             } else if (!gameState.isGameOver) {
-                 updateGameObjects();
+                 updateGameObjects(delta);
                  checkCollisions();
-                 updatePowerUpTimers();
+                 updatePowerUpTimers(delta);
+            }
+            
+            // Always update particle systems so they finish animating
+            for (let i = particleSystems.length - 1; i >= 0; i--) {
+                if (!particleSystems[i].update()) {
+                    particleSystems.splice(i, 1);
+                }
             }
             
             if (gameState.needsRender) {
@@ -213,9 +223,8 @@
         }
 
         class ParticleSystem {
-            constructor(parentScene, position, color, count = 20) {
+            constructor(position, color, count = 20) {
                 this.particles = [];
-                this.parentScene = parentScene;
                 const particleGeo = new THREE.SphereGeometry(0.1, 8, 8);
                 const particleMat = new THREE.MeshBasicMaterial({ color: color, transparent: true });
 
@@ -225,10 +234,10 @@
                     particle.userData.velocity = new THREE.Vector3(
                         (Math.random() - 0.5) * 0.3, (Math.random()) * 0.4, (Math.random() - 0.5) * 0.3
                     );
-                    particle.userData.life = 1;
-                    this.parentScene.add(particle);
-                    this.particles.push(particle);
-                }
+                   particle.userData.life = 1;
+                   gameArea.add(particle);
+                   this.particles.push(particle);
+               }
             }
 
             update() {
@@ -238,7 +247,7 @@
                     particle.userData.velocity.y -= 0.008;
 
                     if (particle.userData.life <= 0) {
-                        this.parentScene.remove(particle);
+                        gameArea.remove(particle);
                         this.particles.splice(i, 1);
                     } else {
                         particle.position.add(particle.userData.velocity);
@@ -272,15 +281,15 @@
 
             const leftWall = new THREE.Mesh(wallGeoX, wallMat);
             leftWall.position.set(-(gameWidth / 2) - 0.25, PADDLE_Y - (wallHeight/2), -0.5);
-            scene.add(leftWall);
+            gameArea.add(leftWall);
 
             const rightWall = new THREE.Mesh(wallGeoX, wallMat);
             rightWall.position.set((gameWidth / 2) + 0.25, PADDLE_Y - (wallHeight/2), -0.5);
-            scene.add(rightWall);
+            gameArea.add(rightWall);
 
             const bottomWall = new THREE.Mesh(wallGeoY, wallMat);
             bottomWall.position.set(0, PLAYFIELD_BOTTOM - 0.25, -0.5);
-            scene.add(bottomWall);
+            gameArea.add(bottomWall);
         }
 
 
@@ -292,7 +301,7 @@
             textGeo.computeBoundingBox();
             mesh.position.set(-textGeo.boundingBox.max.x / 2, 2, 10);
             mesh.userData.life = 1.0;
-            scene.add(mesh);
+            gameArea.add(mesh);
             announcements.push(mesh);
             gameState.needsRender = true;
         }
@@ -300,8 +309,8 @@
         function createPaddle() {
             const geometry = new THREE.BoxGeometry(paddleWidth, 1, 1);
             paddle = new THREE.Mesh(geometry, materials.paddle.clone());
-            paddle.position.set(0, PADDLE_Y, 0); 
-            scene.add(paddle);
+            paddle.position.set(0, PADDLE_Y, 0);
+            gameArea.add(paddle);
         }
 
         function addBall(position) {
@@ -316,7 +325,7 @@
             const angle = (Math.random() - 0.5) * Math.PI / 4;
             ball.userData.velocity = new THREE.Vector3(Math.sin(angle) * speed, -Math.cos(angle) * speed, 0);
             balls.push(ball);
-            scene.add(ball);
+            gameArea.add(ball);
         }
         
         function createBricksFromDesign() {
@@ -336,7 +345,7 @@
                         brick.userData.health = health;
                         brick.position.set(startX + j * 2.5, startY - i * 1.5, 0);
                         bricks.push(brick);
-                        scene.add(brick);
+                        gameArea.add(brick);
                     }
                 }
             }
@@ -352,47 +361,49 @@
             powerUp.userData.type = type;
             powerUp.userData.velocity = new THREE.Vector3(0, 0.08, 0);
             powerUps.push(powerUp);
-            scene.add(powerUp);
+            gameArea.add(powerUp);
         }
         
         function clearLevelObjects() {
-            [...balls, ...bricks, ...powerUps, ...announcements].forEach(obj => scene.remove(obj));
+            [...balls, ...bricks, ...powerUps, ...announcements].forEach(obj => gameArea.remove(obj));
             balls = []; bricks = []; powerUps = []; announcements = [];
-            particleSystems.forEach(ps => ps.particles.forEach(p => scene.remove(p)));
+            particleSystems.forEach(ps => ps.particles.forEach(p => gameArea.remove(p)));
             particleSystems = [];
         }
 
-        function updateGameObjects() {
-            if (balls.length > 0 || powerUps.length > 0 || particleSystems.length > 0 || announcements.length > 0) {
+        function updateGameObjects(delta) {
+            if (balls.length > 0 || powerUps.length > 0 || announcements.length > 0) {
                  gameState.needsRender = true;
             }
             
-            const delta = clock.getDelta();
-            
-            balls.forEach((ball, i) => {
+            for (let i = balls.length - 1; i >= 0; i--) {
+                const ball = balls[i];
                 ball.position.addScaledVector(ball.userData.velocity, delta * 60);
                 if (ball.position.y > PADDLE_Y + 1) {
-                    scene.remove(ball);
+                    gameArea.remove(ball);
                     balls.splice(i, 1);
                     if (balls.length === 0) handleLifeLost();
                 }
-            });
-            powerUps.forEach((pu, i) => {
+            }
+            for (let i = powerUps.length - 1; i >= 0; i--) {
+                const pu = powerUps[i];
                 pu.position.addScaledVector(pu.userData.velocity, delta * 60);
                 pu.rotation.y += 0.05;
-                if (pu.position.y > PADDLE_Y + 1) { scene.remove(pu); powerUps.splice(i, 1); }
-            });
-            particleSystems.forEach((ps, i) => { if (!ps.update()) particleSystems.splice(i, 1); });
-            
-            announcements.forEach((ann, i) => {
+                if (pu.position.y > PADDLE_Y + 1) {
+                    gameArea.remove(pu);
+                    powerUps.splice(i, 1);
+                }
+            }
+            for (let i = announcements.length - 1; i >= 0; i--) {
+                const ann = announcements[i];
                 ann.userData.life -= 0.008;
                 ann.material.opacity = Math.max(0, ann.userData.life * 2);
                 ann.position.y += 0.03;
                 if (ann.userData.life <= 0) {
-                    scene.remove(ann);
+                    gameArea.remove(ann);
                     announcements.splice(i, 1);
                 }
-            });
+            }
             
             updatePaddleAI();
         }
@@ -429,14 +440,26 @@
             }
             const move = THREE.MathUtils.clamp(diff, -PADDLE_SPEED, PADDLE_SPEED);
             paddle.position.x += move;
+            
+            const rotationAmount = (paddle.position.x / paddleLimitX) * 0.1;
+            gameArea.rotation.y = rotationAmount;
         }
 
         function checkCollisions() {
             const wallLimitX = gameWidth / 2 - ballRadius;
             
             balls.forEach(ball => {
-                if (Math.abs(ball.position.x) > wallLimitX) { ball.userData.velocity.x *= -1; }
-                if (ball.position.y < PLAYFIELD_BOTTOM) { ball.userData.velocity.y *= -1; }
+                if (ball.position.x > wallLimitX) {
+                    ball.position.x = wallLimitX;
+                    ball.userData.velocity.x *= -1;
+                } else if (ball.position.x < -wallLimitX) {
+                    ball.position.x = -wallLimitX;
+                    ball.userData.velocity.x *= -1;
+                }
+                if (ball.position.y < PLAYFIELD_BOTTOM) {
+                    ball.position.y = PLAYFIELD_BOTTOM;
+                    ball.userData.velocity.y *= -1;
+                }
             });
             
             const paddleBox = new THREE.Box3().setFromObject(paddle);
@@ -454,13 +477,28 @@
 
             for (let i = balls.length - 1; i >= 0; i--) {
                 const ball = balls[i];
-                let ballHitBrick = false;
+                const ballBox = new THREE.Box3().setFromObject(ball);
+
                 for (let j = bricks.length - 1; j >= 0; j--) {
                     const brick = bricks[j];
-                    if (new THREE.Box3().setFromObject(ball).intersectsBox(new THREE.Box3().setFromObject(brick))) {
+                    const brickBox = new THREE.Box3().setFromObject(brick);
+
+                    if (ballBox.intersectsBox(brickBox)) {
+                        const intersection = new THREE.Box3().copy(ballBox).intersect(brickBox);
+                        const intersectionSize = new THREE.Vector3();
+                        intersection.getSize(intersectionSize);
+
+                        if (intersectionSize.x < intersectionSize.y) {
+                            // Side collision
+                            ball.position.x += (ball.position.x > brick.position.x ? intersectionSize.x : -intersectionSize.x);
+                            ball.userData.velocity.x *= -1;
+                        } else {
+                            // Top/bottom collision
+                            ball.position.y += (ball.position.y > brick.position.y ? intersectionSize.y : -intersectionSize.y);
+                            ball.userData.velocity.y *= -1;
+                        }
+
                         handleBrickHit(brick, j);
-                        ball.userData.velocity.y *= -1;
-                        ballHitBrick = true;
                         break;
                     }
                 }
@@ -470,7 +508,7 @@
                 const pu = powerUps[i];
                  if (new THREE.Box3().setFromObject(pu).intersectsBox(paddleBox)) {
                     activatePowerUp(pu.userData.type);
-                    scene.remove(pu);
+                    gameArea.remove(pu);
                     powerUps.splice(i, 1);
                     gameState.needsRender = true;
                 }
@@ -486,7 +524,7 @@
             gameState.score += 1000;
             gameState.level++;
 
-            balls.forEach(ball => scene.remove(ball));
+            balls.forEach(ball => gameArea.remove(ball));
             balls = [];
             
             setTimeout(() => {
@@ -514,7 +552,7 @@
             
             setTimeout(() => {
                 if (levelTransitionText) {
-                    scene.remove(levelTransitionText);
+                    gameArea.remove(levelTransitionText);
                     levelTransitionText.geometry.dispose();
                     levelTransitionText.material.dispose();
                     levelTransitionText = null;
@@ -548,18 +586,17 @@
             if (brick.userData.health <= 0) {
                 if (Math.random() < 0.25) createPowerUp(brick.position);
                 gameState.score += 75;
-                particleSystems.push(new ParticleSystem(scene, brick.position, brick.material.color, 30));
-                scene.remove(brick);
+                particleSystems.push(new ParticleSystem(brick.position, brick.material.color, 30));
+                gameArea.remove(brick);
                 bricks.splice(i, 1);
             } else {
-                particleSystems.push(new ParticleSystem(scene, brick.position, brick.material.color, 5));
+                particleSystems.push(new ParticleSystem(brick.position, brick.material.color, 5));
                 brick.material.color.set(materials.brick[brick.userData.health - 1].color);
             }
             updateUI();
         }
         
-        function updatePowerUpTimers() {
-            const delta = clock.getDelta();
+        function updatePowerUpTimers(delta) {
             let timerTextContent = "";
             let needsUIUpdate = false;
             let currentTimers = [];
