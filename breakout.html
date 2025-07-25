@@ -295,11 +295,15 @@
 
         function createPowerUpAnnouncement(text, color) {
             if (!font) return;
+            // Hide level transition text when a new power-up announcement is created
+            if (levelTransitionText) levelTransitionText.visible = false;
+            
             const textGeo = new TextGeometry(text, { font: font, size: 1.2, height: 0.2 });
             const textMat = new THREE.MeshBasicMaterial({ color: color, transparent: true });
             const mesh = new THREE.Mesh(textGeo, textMat);
             textGeo.computeBoundingBox();
-            mesh.position.set(-textGeo.boundingBox.max.x / 2, 2, 10);
+            // Ensure the text is rendered on top by setting a higher Z position
+            mesh.position.set(-textGeo.boundingBox.max.x / 2, 2, 15);
             mesh.userData.life = 1.0;
             gameArea.add(mesh);
             announcements.push(mesh);
@@ -544,11 +548,12 @@
             levelTransitionText = new THREE.Mesh(textGeo, textMat);
             
             textGeo.computeBoundingBox();
-            levelTransitionText.position.set(-textGeo.boundingBox.max.x / 2, 2, 10);
+            // Ensure the level transition text is behind power-up announcements
+            levelTransitionText.position.set(-textGeo.boundingBox.max.x / 2, 2, 5);
             levelTransitionText.scale.set(0.1, 0.1, 0.1);
             levelTransitionText.userData.life = 0;
             
-            scene.add(levelTransitionText);
+            gameArea.add(levelTransitionText);
             
             setTimeout(() => {
                 if (levelTransitionText) {
@@ -685,6 +690,7 @@
             gameState.lives--;
             updateUI();
             if (gameState.lives <= 0) {
+                if (levelTransitionText) levelTransitionText.visible = false;
                 gameState.isGameOver = true;
                 gameOverScreen.classList.remove('hidden');
                 gameState.needsRender = true;
