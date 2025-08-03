@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Family Quest v1.13 (Fixed)</title>
+    <title>Family Quest v1.16 (Swipe Fixed)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Bangers&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
@@ -45,6 +45,7 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
+            overflow: hidden; 
         }
         
         #app-shell {
@@ -142,20 +143,40 @@
             margin-bottom: 2rem;
         }
 
-        html.dark .swiper-slide::-webkit-scrollbar {
+        .swiper-slide::-webkit-scrollbar {
             width: 8px;
         }
-        html.dark .swiper-slide::-webkit-scrollbar-track {
+        .swiper-slide::-webkit-scrollbar-track {
             background: transparent;
         }
-        html.dark .swiper-slide::-webkit-scrollbar-thumb {
-            background-color: rgba(255, 255, 255, 0.2);
+        .swiper-slide::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.15);
             border-radius: 4px;
             border: 2px solid transparent;
             background-clip: content-box;
         }
+        .swiper-slide::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(0, 0, 0, 0.25);
+        }
+        html.dark .swiper-slide::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
         html.dark .swiper-slide::-webkit-scrollbar-thumb:hover {
             background-color: rgba(255, 255, 255, 0.3);
+        }
+
+        details summary {
+            cursor: pointer;
+            list-style: none;
+        }
+        details summary::-webkit-details-marker {
+            display: none;
+        }
+        details summary .arrow {
+            transition: transform 0.2s;
+        }
+        details[open] summary .arrow {
+            transform: rotate(90deg);
         }
 
     </style>
@@ -211,6 +232,17 @@ const DB = {
         { id: "mb14", description: "Convince someone it's a different day of the week", points: 25, type: 'Challenge', targetAudience: ['Everyone'] },
         { id: "mb15", description: "Get someone to scratch their head in confusion", points: 10, type: 'Challenge', targetAudience: ['Everyone'] },
         { id: "mb16", description: "Hide someone's keys and 'help' them find them", points: 30, type: 'Challenge', targetAudience: ['Everyone'] },
+        { id: "mb17", description: "Clean your own bathroom mirror and sink", points: 15, type: 'Chore', targetAudience: ['Everyone'] },
+        { id: "mb18", description: "Cook dinner for the family", points: 50, type: 'Bounty', targetAudience: ['Parents'] },
+        { id: "mb19", description: "Do a load of laundry and put it away", points: 20, type: 'Chore', targetAudience: ['Everyone'] },
+        { id: "mb20", description: "Get someone to wear a hat indoors for 10 minutes", points: 15, type: 'Challenge', targetAudience: ['Everyone'] },
+        { id: "mb21", description: "Balance a spoon on your nose for 10 seconds", points: 10, type: 'Challenge', targetAudience: ['Everyone'] },
+        { id: "mb22", description: "Work a movie quote into a normal conversation", points: 10, type: 'Challenge', targetAudience: ['Everyone'] },
+        { id: "mb23", description: "Take the bins out on bin day", points: 10, type: 'Bounty', targetAudience: ['Everyone'] },
+        { id: "mb24", description: "Mow the lawn", points: 40, type: 'Bounty', targetAudience: ['Parents', 'Dad'] },
+        { id: "mb25", description: "Plan the weekly food shop", points: 25, type: 'Chore', targetAudience: ['Parents'] },
+        { id: "mb26", description: "Get someone to say 'supercalifragilisticexpialidocious'", points: 30, type: 'Challenge', targetAudience: ['Everyone'] },
+        { id: "mb27", description: "Make a cup of tea for someone without being asked", points: 5, type: 'Challenge', targetAudience: ['Everyone'] },
     ],
     activeMissions: [],
     bountyBoard: [],
@@ -259,41 +291,37 @@ function initializeGame() {
     buildAndNavigate(currentPage);
 }
 
-// FIX: Rewrote initial data setup to be robust against an empty mission pool.
 function setupInitialData() {
-    DB.activeMissions = []; // Clear previous missions
-    DB.bountyBoard = []; // Clear bounties
-    DB.users.forEach(u => { u.weeklyScore = 0; }); // Reset scores
+    DB.activeMissions = []; 
+    DB.bountyBoard = []; 
+    DB.users.forEach(u => { u.weeklyScore = 0; }); 
 
-    // --- Create a pool of missions to assign ---
     let missionPool = [...DB.missionBank].sort(() => 0.5 - Math.random());
     
     const getMission = (type) => {
-        if (missionPool.length === 0) return null; // Return null if empty
-        const index = missionPool.findIndex(m => m.type === type);
+        if (missionPool.length === 0) return null; 
+        const index = type ? missionPool.findIndex(m => m.type === type) : -1;
         if (index > -1) return missionPool.splice(index, 1)[0];
-        return missionPool.pop(); // fallback as last resort
+        return missionPool.pop(); 
     };
 
-    // --- Helper to safely assign missions ---
     const assignToUser = (userId, count, type) => {
         for (let i = 0; i < count; i++) {
             const mission = getMission(type);
             if (mission) {
                 assignMission(mission.id, userId);
             } else {
-                break; // Stop if pool is empty
+                break; 
             }
         }
     };
 
-    // --- Assign missions to demonstrate all states ---
     let mission;
 
     // Lucy: Completed, Pending, Failed, Active
     mission = getMission('Challenge');
     if (mission) {
-        const lucyCompleted = { ...mission, instanceId: 'mi_lucy_1', assignedTo: 'lucy', status: 'Completed' };
+        const lucyCompleted = { ...mission, instanceId: 'mi_lucy_1', assignedTo: 'lucy', status: 'Completed', statusTimestamp: new Date(Date.now() - 86400000 * 2).toISOString() };
         const user = DB.users.find(u=>u.id==='lucy');
         if(user) user.weeklyScore += lucyCompleted.points;
         DB.activeMissions.push(lucyCompleted);
@@ -301,21 +329,21 @@ function setupInitialData() {
     
     mission = getMission('Chore');
     if (mission) {
-        const lucyPending = { ...mission, instanceId: 'mi_lucy_2', assignedTo: 'lucy', status: 'PendingVerification' };
+        const lucyPending = { ...mission, instanceId: 'mi_lucy_2', assignedTo: 'lucy', status: 'PendingVerification', statusTimestamp: new Date(Date.now() - 3600000).toISOString() };
         DB.activeMissions.push(lucyPending);
     }
     
     mission = getMission('Chore');
     if (mission) {
-        const lucyFailed = { ...mission, instanceId: 'mi_lucy_3', assignedTo: 'lucy', status: 'Failed' };
+        const lucyFailed = { ...mission, instanceId: 'mi_lucy_3', assignedTo: 'lucy', status: 'Failed', statusTimestamp: new Date().toISOString() };
         DB.activeMissions.push(lucyFailed);
     }
-    assignToUser('lucy', 2, 'Challenge'); // Assign 2 more to make 5 total
+    assignToUser('lucy', 2, 'Challenge');
 
     // Emilia: Pending and Active
     mission = getMission('Chore');
     if (mission) {
-        const emiliaPending = { ...mission, instanceId: 'mi_emilia_1', assignedTo: 'emilia', status: 'PendingVerification' };
+        const emiliaPending = { ...mission, instanceId: 'mi_emilia_1', assignedTo: 'emilia', status: 'PendingVerification', statusTimestamp: new Date(Date.now() - 7200000).toISOString() };
         DB.activeMissions.push(emiliaPending);
     }
     assignToUser('emilia', 4, 'Challenge');
@@ -324,7 +352,8 @@ function setupInitialData() {
     mission = getMission('Chore');
     if (mission) {
         const thomasTimed = { ...mission, instanceId: 'mi_thomas_1', assignedTo: 'thomas', status: 'Active', deadline: new Date(Date.now() - 60000).toISOString() };
-        thomasTimed.status = 'Failed'; // Manually fail it for demo
+        thomasTimed.status = 'Failed';
+        thomasTimed.statusTimestamp = new Date().toISOString();
         DB.activeMissions.push(thomasTimed);
     }
     assignToUser('thomas', 4, 'Chore');
@@ -333,7 +362,6 @@ function setupInitialData() {
     assignToUser('dad', 5, 'Challenge');
     assignToUser('mum', 5, 'Chore');
     
-    // Add remaining missions to bounty board
     DB.bountyBoard = [...missionPool];
 
     addNotification('lucy', 'Welcome to Family Missions! Check out your first missions.');
@@ -354,7 +382,7 @@ function navigateToPage(targetPageId, animate = true) {
     currentPage = targetPageId;
     renderNavigation();
     const pageIndex = pageOrder.indexOf(targetPageId);
-    if (swiper && pageIndex !== -1) {
+    if (swiper && pageIndex !== -1 && pageIndex < swiper.slides.length) {
         swiper.slideTo(pageIndex, animate ? 300 : 0);
     }
 }
@@ -424,7 +452,11 @@ function initSwiper() {
     if (swiper) {
         swiper.destroy(true, true);
     }
+    // CHANGE: Added event handlers to prevent multi-page swipes
     swiper = new Swiper('#app-main', {
+        mousewheel: {
+            forceToAxis: true,
+        },
         on: {
             slideChange: function () {
                 const newPageId = pageOrder[this.activeIndex];
@@ -433,34 +465,44 @@ function initSwiper() {
                     renderNavigation();
                 }
             },
+            // When the slide animation starts, disable user interaction
+            slideChangeTransitionStart: function () {
+                this.allowTouchMove = false;
+            },
+            // When the slide animation ends, re-enable user interaction
+            slideChangeTransitionEnd: function () {
+                this.allowTouchMove = true;
+            },
         },
     });
 }
 
 // --- LOGIC FUNCTIONS ---
-function checkTimeouts() { const now = new Date(); let changed = false; DB.activeMissions.forEach(mission => { if (mission.status === 'Active' && mission.deadline) { const deadlineDate = new Date(mission.deadline); if (now > deadlineDate) { mission.status = 'Failed'; addNotification(mission.assignedTo, `Mission timed out: "${mission.description}"`); changed = true; } } }); if (changed) { showModal("Missions Timed Out!", "Some missions have expired and are now marked as Failed."); buildAndNavigate(currentPage); } else { showModal("All Clear!", "No active missions have timed out."); } }
+function checkTimeouts() { const now = new Date(); let changed = false; DB.activeMissions.forEach(mission => { if (mission.status === 'Active' && mission.deadline) { const deadlineDate = new Date(mission.deadline); if (now > deadlineDate) { mission.status = 'Failed'; mission.statusTimestamp = new Date().toISOString(); addNotification(mission.assignedTo, `Mission timed out: "${mission.description}"`); changed = true; } } }); if (changed) { showModal("Missions Timed Out!", "Some missions have expired and are now marked as Failed."); buildAndNavigate(currentPage); } else { showModal("All Clear!", "No active missions have timed out."); } }
 function addNotification(userId, message) { DB.notifications.push({ id: `notif_${Date.now()}`, userId, message, read: false }); }
 function getMissionFromBank(id) { return JSON.parse(JSON.stringify(DB.missionBank.find(m => m.id === id))); }
-function assignMission(missionId, userId) { const mission = getMissionFromBank(missionId); if (!mission) return; const newMissionInstance = { ...mission, instanceId: `mi_${Date.now()}_${Math.random()}`, assignedTo: userId, status: 'Active' }; DB.activeMissions.push(newMissionInstance); }
-function claimBounty(missionId) { const userMissions = DB.activeMissions.filter(m => m.assignedTo === currentUser.id && m.status !== 'Completed'); if (userMissions.length >= 10) { showModal("Too Many Missions!", "You must complete some missions before claiming new ones. Max 10 active missions."); return; } const missionIndex = DB.bountyBoard.findIndex(m => m.id === missionId); if (missionIndex > -1) { const mission = DB.bountyBoard[missionIndex]; DB.bountyBoard.splice(missionIndex, 1); const newMissionInstance = { ...mission, instanceId: `mi_${Date.now()}_${Math.random()}`, assignedTo: currentUser.id, status: 'Active' }; DB.activeMissions.push(newMissionInstance); addNotification(currentUser.id, `You have claimed the bounty: "${mission.description}"!`); buildAndNavigate(currentPage); } }
-function markMissionComplete(instanceId) { const mission = DB.activeMissions.find(m => m.instanceId === instanceId); if (!mission) return; mission.status = 'PendingVerification'; showModal("Mission Submitted!", "Another family member will need to verify this mission from the 'Verify Missions' page."); buildAndNavigate(currentPage); }
-function unmarkMission(instanceId) { const mission = DB.activeMissions.find(m => m.instanceId === instanceId); if (mission && mission.status === 'PendingVerification') { mission.status = 'Active'; buildAndNavigate(currentPage); } }
-function verifyMission(instanceId, isApproved) { const mission = DB.activeMissions.find(m => m.instanceId === instanceId); if (!mission) return; const user = DB.users.find(u => u.id === mission.assignedTo); if (isApproved) { mission.status = 'Completed'; user.weeklyScore += mission.points; user.allTimeScore += mission.points; DB.verificationLog.push(`${currentUser.name} approved '${mission.description}' for ${user.name}.`); addNotification(user.id, `Your mission "${mission.description}" was approved by ${currentUser.name}! You earned ${mission.points} points.`); confetti(); showModal("Mission Approved!", `${user.name} earned ${mission.points} points!`); } else { mission.status = 'Active'; addNotification(user.id, `Your mission "${mission.description}" was denied by ${currentUser.name} and is back on your list.`); showModal("Mission Denied", "The mission has been returned to the user's active list."); } buildAndNavigate(currentPage); }
-function addOrSuggestMission(event) { event.preventDefault(); const form = event.target; const description = form.elements.description.value; const points = parseInt(form.elements.points.value); const targetId = form.elements.target.value; const type = form.elements.type.value; const isSelfAssignedParent = currentUser.role === 'Parent' && targetId === currentUser.id; if (!description || !points) { showModal("Incomplete Form", "Please fill out the description and points."); return; } if (currentUser.role === 'Child' || isSelfAssignedParent) { const newSuggestion = { id: `sugg_${Date.now()}`, description, points, targetAudience: [targetId || 'Everyone'], type, suggestedBy: currentUser.id }; DB.suggestedMissions.push(newSuggestion); showModal("Suggestion Sent!", "A parent will review your new mission idea. Thanks!"); } else { if (!targetId) { showModal("Incomplete Form", "Please select who to assign this mission to."); return; } const newMission = { id: `mb_direct_${Date.now()}`, description, points, type, targetAudience: [targetId] }; DB.missionBank.push(newMission); assignMission(newMission.id, targetId); addNotification(targetId, `You have been assigned a new mission: "${description}".`); showModal("Mission Assigned!", `A new mission has been assigned to ${DB.users.find(u=>u.id === targetId).name}.`); } form.reset(); buildAndNavigate(currentPage); }
-function approveSuggestion(suggestionId, isApproved) { const suggestionIndex = DB.suggestedMissions.findIndex(s => s.id === suggestionId); if (suggestionIndex === -1) return; const suggestion = DB.suggestedMissions[suggestionIndex]; if (isApproved) { const form = document.getElementById(`form-sugg-${suggestionId}`); const newDescription = form.elements.description.value; const newPoints = parseInt(form.elements.points.value); if (currentUser.role === 'Parent' && suggestion.targetAudience.length === 1 && suggestion.targetAudience[0] === currentUser.id && suggestion.suggestedBy === currentUser.id) { showModal("Rule Alert!", "You cannot approve your own self-assigned mission."); return; } const newMission = { ...suggestion, id: `mb_${Date.now()}`, description: newDescription, points: newPoints }; delete newMission.suggestedBy; DB.missionBank.push(newMission); addNotification(suggestion.suggestedBy, `Your mission suggestion "${newDescription}" was approved!`); showModal("Mission Approved!", `"${newDescription}" has been added to the Mission Bank.`); } DB.suggestedMissions.splice(suggestionIndex, 1); buildAndNavigate(currentPage); }
+function assignMission(missionId, userId) { const mission = getMissionFromBank(missionId); if (!mission) return; const newMissionInstance = { ...mission, instanceId: `mi_${Date.now()}_${Math.random()}`, assignedTo: userId, status: 'Active', statusTimestamp: new Date().toISOString() }; DB.activeMissions.push(newMissionInstance); }
+function claimBounty(missionId) { const userMissions = DB.activeMissions.filter(m => m.assignedTo === currentUser.id && m.status !== 'Completed'); if (userMissions.length >= 10) { showModal("Too Many Missions!", "You must complete some missions before claiming new ones. Max 10 active missions."); return; } const missionIndex = DB.bountyBoard.findIndex(m => m.id === missionId); if (missionIndex > -1) { const mission = DB.bountyBoard[missionIndex]; DB.bountyBoard.splice(missionIndex, 1); const newMissionInstance = { ...mission, instanceId: `mi_${Date.now()}_${Math.random()}`, assignedTo: currentUser.id, status: 'Active', statusTimestamp: new Date().toISOString() }; DB.activeMissions.push(newMissionInstance); addNotification(currentUser.id, `You have claimed the bounty: "${mission.description}"!`); buildAndNavigate(currentPage); } }
+function markMissionComplete(instanceId) { const mission = DB.activeMissions.find(m => m.instanceId === instanceId); if (!mission) return; mission.status = 'PendingVerification'; mission.statusTimestamp = new Date().toISOString(); showModal("Mission Submitted!", "Another family member will need to verify this mission from the 'Verify Missions' page."); buildAndNavigate(currentPage); }
+function unmarkMission(instanceId) { const mission = DB.activeMissions.find(m => m.instanceId === instanceId); if (mission && mission.status === 'PendingVerification') { mission.status = 'Active'; mission.statusTimestamp = new Date().toISOString(); buildAndNavigate(currentPage); } }
+function verifyMission(instanceId, isApproved) { const mission = DB.activeMissions.find(m => m.instanceId === instanceId); if (!mission) return; const user = DB.users.find(u => u.id === mission.assignedTo); if (isApproved) { mission.status = 'Completed'; user.weeklyScore += mission.points; user.allTimeScore += mission.points; DB.verificationLog.push(`${currentUser.name} approved '${mission.description}' for ${user.name}.`); addNotification(user.id, `Your mission "${mission.description}" was approved by ${currentUser.name}! You earned ${mission.points} points.`); confetti(); showModal("Mission Approved!", `${user.name} earned ${mission.points} points!`); } else { mission.status = 'Active'; addNotification(user.id, `Your mission "${mission.description}" was denied by ${currentUser.name} and is back on your list.`); showModal("Mission Denied", "The mission has been returned to the user's active list."); } mission.statusTimestamp = new Date().toISOString(); buildAndNavigate(currentPage); }
+function addOrSuggestMission(event) { event.preventDefault(); const form = event.target; const description = form.elements.description.value; const points = parseInt(form.elements.points.value); const targetId = form.elements.target.value; const type = form.elements.type ? form.elements.type.value : 'Challenge'; const isSelfAssignedParent = currentUser.role === 'Parent' && targetId === currentUser.id; if (!description || !points) { showModal("Incomplete Form", "Please fill out the description and points."); return; } if (currentUser.role === 'Child' || isSelfAssignedParent) { const newSuggestion = { id: `sugg_${Date.now()}`, description, points, targetAudience: [targetId || 'Everyone'], type, suggestedBy: currentUser.id }; DB.suggestedMissions.push(newSuggestion); showModal("Suggestion Sent!", "A parent will review your new mission idea. Thanks!"); } else { if (!targetId) { showModal("Incomplete Form", "Please select who to assign this mission to."); return; } const newMission = { id: `mb_direct_${Date.now()}`, description, points, type, targetAudience: [targetId] }; DB.missionBank.push(newMission); assignMission(newMission.id, targetId); addNotification(targetId, `You have been assigned a new mission: "${description}".`); showModal("Mission Assigned!", `A new mission has been assigned to ${DB.users.find(u=>u.id === targetId).name}.`); } form.reset(); buildAndNavigate(currentPage); }
+function approveSuggestion(suggestionId, isApproved) { const suggestionIndex = DB.suggestedMissions.findIndex(s => s.id === suggestionId); if (suggestionIndex === -1) return; const suggestion = DB.suggestedMissions[suggestionIndex]; if (isApproved) { const form = document.getElementById(`form-sugg-${suggestionId}`); const newDescription = form.elements.description.value; const newPoints = parseInt(form.elements.points.value); const newType = form.elements.type.value; if (currentUser.role === 'Parent' && suggestion.targetAudience.length === 1 && suggestion.targetAudience[0] === currentUser.id && suggestion.suggestedBy === currentUser.id) { showModal("Rule Alert!", "You cannot approve your own self-assigned mission."); return; } const newMission = { ...suggestion, id: `mb_${Date.now()}`, description: newDescription, points: newPoints, type: newType }; delete newMission.suggestedBy; DB.missionBank.push(newMission); addNotification(suggestion.suggestedBy, `Your mission suggestion "${newDescription}" was approved!`); showModal("Mission Approved!", `"${newDescription}" has been added to the Mission Bank.`); } DB.suggestedMissions.splice(suggestionIndex, 1); buildAndNavigate(currentPage); }
 function endGame() { const winner = [...DB.users].sort((a, b) => b.weeklyScore - a.weeklyScore)[0]; let report = `<div class="text-center"><h2 class="text-3xl font-bold mb-4">Weekly Report</h2><div class="bg-amber-100 p-6 rounded-lg text-gray-800"><p class="text-xl">This week's champion is...</p><p class="font-bangers text-5xl text-amber-600 my-4">${winner.name}!</p><p class="text-lg">with a score of ${winner.weeklyScore} points!</p></div><h3 class="text-2xl font-bold mt-8 mb-4">Verification Log</h3><ul class="text-left p-4 rounded-lg text-sm space-y-2" style="background-color: var(--subtle-bg);">${DB.verificationLog.length > 0 ? DB.verificationLog.map(log => `<li>📜 ${log}</li>`).join('') : '<li>No missions were verified this week.</li>'}</ul></div>`; showModal("Game Over!", report, true); }
 
 // --- PAGE RENDERING FUNCTIONS ---
 function renderMyMissionsPage() { const myMissions = DB.activeMissions.filter(m => m.assignedTo === currentUser.id); const myNotifications = DB.notifications.filter(n => n.userId === currentUser.id && !n.read); const statusOrder = { 'Active': 1, 'PendingVerification': 2, 'Completed': 3, 'Failed': 4 }; myMissions.sort((a, b) => { const statusDiff = statusOrder[a.status] - statusOrder[b.status]; if (statusDiff !== 0) return statusDiff; return b.points - a.points; }); return `${myNotifications.length > 0 ? `<div class="mb-6 bg-blue-500 bg-opacity-20 border-l-4 border-blue-500 text-blue-300 p-4 rounded-r-lg" role="alert"><p class="font-bold">Notifications</p><ul class="list-disc list-inside">${myNotifications.map(n => `<li>${n.message}</li>`).join('')}</ul></div>` : ''}<div><h2 class="font-bangers text-4xl text-center mb-4 text-blue-400">My Missions (${myMissions.filter(m=>m.status === 'Active' || m.status === 'PendingVerification').length})</h2>${myMissions.length > 0 ? `<div class="space-y-3">${myMissions.map(m => renderMissionCard(m)).join('')}</div>` : `<div class="text-center p-6 rounded-lg shadow" style="background-color: var(--card-bg);"><p>You have no active missions. Go to the Bounty Board to claim one!</p></div>`}</div>`; }
 function renderVerifyMissionsPage() { const missionsToVerify = DB.activeMissions.filter(m => m.status === 'PendingVerification' && m.assignedTo !== currentUser.id); return `<div class="p-6 rounded-lg shadow-lg" style="background-color: var(--card-bg);"><h2 class="font-bangers text-4xl text-center mb-4" style="color: var(--header-color);">Verify Missions</h2>${missionsToVerify.length > 0 ? `<div class="space-y-3">${missionsToVerify.map(m => `<div class="p-4 rounded-lg shadow" style="background-color: var(--subtle-bg);"><p><span class="font-bold">${DB.users.find(u=>u.id===m.assignedTo).name}</span> completed:</p><p class="my-2 text-lg font-semibold">"${m.description}"</p><div class="flex justify-end space-x-2"><button data-instance-id="${m.instanceId}" class="btn-deny-mission bg-red-500 text-white px-3 py-1 rounded btn">Deny</button><button data-instance-id="${m.instanceId}" class="btn-approve-mission bg-green-500 text-white px-3 py-1 rounded btn">Approve</button></div></div>`).join('')}</div>` : `<p class="text-center">No missions are waiting for verification right now.</p>`}</div>`; }
 function renderBountyBoardPage() { return `<div class="p-6 bg-green-800 rounded-lg shadow-lg" style="background-image: url('https://www.transparenttextures.com/patterns/wood-pattern.png');"><h2 class="font-bangers text-4xl text-center mb-4 text-white">Bounty Board</h2>${DB.bountyBoard.length > 0 ? `<div class="space-y-3">${DB.bountyBoard.map(m => `<div class="mission-card mission-bounty p-4 rounded-lg shadow flex justify-between items-center !bg-white !text-gray-800"><div><p class="font-bold">${m.description}</p><p class="text-sm text-green-600 font-semibold">${m.points} Points</p></div><button data-mission-id="${m.id}" class="btn-claim-bounty bg-green-500 text-white px-4 py-2 rounded-lg btn">Claim!</button></div>`).join('')}</div>` : `<div class="text-center text-white p-6"><p>The Bounty Board is empty. Check back later!</p></div>`}</div>`; }
-function renderLeaderboardPage() { const sortedUsers = [...DB.users].sort((a, b) => b.weeklyScore - a.weeklyScore); const podiumColors = ['bg-amber-400', 'bg-slate-400', 'bg-orange-400']; return `<div class="mb-8"><h2 class="font-bangers text-4xl text-center mb-4 text-blue-400">Weekly Leaderboard</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">${sortedUsers.slice(0, 3).map((user, index) => `<div class="${podiumColors[index]} p-4 rounded-lg shadow-lg text-white"><div class="font-bold text-2xl">${index + 1}</div><div class="text-xl font-semibold">${user.name}</div><div class="text-3xl font-bold">${user.weeklyScore} pts</div></div>`).join('')}</div><div class="mt-4 p-3 rounded-lg shadow" style="background-color: var(--card-bg);">${sortedUsers.slice(3).map((user, index) => `<div class="flex justify-between items-center p-2 border-b" style="border-color: var(--border-color);"><span class="font-semibold">${index + 4}. ${user.name}</span><span class="font-bold">${user.weeklyScore} pts</span></div>`).join('')}</div><div class="text-center mt-8"><button id="btn-end-game" class="bg-red-600 text-white font-bold px-8 py-4 rounded-lg shadow-xl btn">End the Week & See Report</button></div></div>`; }
-function renderAddMissionPage() { const pointsGuidance = `<div class="p-3 rounded-lg text-sm" style="background-color: var(--subtle-bg);"><p class="font-bold">Point Guidelines:</p><ul class="list-disc list-inside"><li><b>5-10 Points:</b> Quick tasks (under 5 mins).</li><li><b>15-25 Points:</b> Standard chores (10-20 mins).</li><li><b>30-50 Points:</b> Big efforts (30+ mins or high importance).</li></ul></div>`; const formTitle = 'Add or Suggest a Mission'; const submitText = 'Submit Mission'; return `<div class="p-6 rounded-lg shadow-lg" style="background-color: var(--card-bg);"><h2 class="font-bangers text-4xl text-center mb-4" style="color: var(--header-color);">${formTitle}</h2><form id="add-suggest-mission-form" class="space-y-4">${pointsGuidance}<div><label class="block font-medium">Description</label><input type="text" name="description" placeholder="E.g., Get someone to hum a song" class="w-full p-2 border rounded mt-1"></div><div><label class="block font-medium">Points</label><input type="number" name="points" placeholder="e.g., 5" class="w-full p-2 border rounded mt-1"></div><div><label class="block font-medium">Type</label><select name="type" class="w-full p-2 border rounded mt-1"><option value="Chore">Chore</option><option value="Challenge">Challenge</option></select></div><div><label class="block font-medium">Assign To</label><select name="target" class="w-full p-2 border rounded mt-1"><option value="Everyone">Everyone</option><option value="Children">All Children</option><option value="Parents">All Parents</option><optgroup label="Specific Person">${DB.users.map(u => `<option value="${u.id}">${u.name}</option>`).join('')}</optgroup></select></div><button type="submit" class="w-full bg-amber-500 text-white p-2 rounded-lg btn">${submitText}</button></form></div>`; }
-function renderAdminPage() { const suggestedMissions = DB.suggestedMissions; return `<div class="p-6 rounded-lg shadow-inner" style="background-color: var(--subtle-bg);"><h2 class="font-bangers text-4xl text-center text-slate-700">Approve Missions</h2>${suggestedMissions.length > 0 ? `<div class="space-y-4 mt-4">${suggestedMissions.map(s => `<form id="form-sugg-${s.id}" class="p-4 rounded-lg shadow space-y-3" style="background-color: var(--card-bg);"><p class="text-sm">Suggested by: <span class="font-bold">${DB.users.find(u=>u.id===s.suggestedBy).name}</span></p><div><label class="block text-sm font-medium">Description</label><input type="text" name="description" value="${s.description}" class="w-full p-2 border rounded mt-1"></div><div><label class="block text-sm font-medium">Points</label><input type="number" name="points" value="${s.points}" class="w-full p-2 border rounded mt-1"></div><div class="flex justify-end space-x-2"><button type="button" data-suggestion-id="${s.id}" class="btn-deny-suggestion bg-red-500 text-white px-3 py-1 rounded btn">Deny</button><button type="button" data-suggestion-id="${s.id}" class="btn-approve-suggestion bg-green-500 text-white px-3 py-1 rounded btn">Edit & Approve</button></div></form>`).join('')}</div>` : `<p class="text-center mt-4">No missions are waiting for approval.</p>`}</div>`; }
+function renderLeaderboardPage() { const sortedUsers = [...DB.users].sort((a, b) => b.weeklyScore - a.weeklyScore); const podiumColors = ['bg-amber-400', 'bg-slate-400', 'bg-orange-400']; return `<div class="mb-8"><h2 class="font-bangers text-4xl text-center mb-4 text-blue-400">Weekly Leaderboard</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">${sortedUsers.slice(0, 3).map((user, index) => `<div class="${podiumColors[index]} p-4 rounded-lg shadow-lg text-white"><div class="font-bold text-2xl">${index + 1}</div><div class="text-xl font-semibold">${user.name}</div><div class="text-3xl font-bold">${user.weeklyScore} pts</div></div>`).join('')}</div><div class="mt-4 p-3 rounded-lg shadow" style="background-color: var(--card-bg);">${sortedUsers.slice(3).map((user, index) => `<div class="flex justify-between items-center p-2 border-b" style="border-color: var(--border-color);"><span class="font-semibold">${index + 4}. ${user.name}</span><span class="font-bold">${user.weeklyScore} pts</span></div>`).join('')}</div>${renderMissionLogSummary()}<div class="text-center mt-8"><button id="btn-end-game" class="bg-red-600 text-white font-bold px-8 py-4 rounded-lg shadow-xl btn">See Report</button></div></div>`; }
+function renderMissionLogSummary() { const closedMissions = DB.activeMissions.filter(m => m.status !== 'Active').sort((a, b) => new Date(b.statusTimestamp) - new Date(a.statusTimestamp)); if (closedMissions.length === 0) return ''; const statusStyles = { Completed: 'text-gray-500', PendingVerification: 'text-red-500', Failed: 'text-red-800 dark:text-red-400' }; return `<div class="mt-8"><details class="p-4 rounded-lg shadow-inner" style="background-color: var(--subtle-bg);"><summary class="font-bold text-lg flex justify-between items-center"><span>Mission Log</span><svg class="arrow w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg></summary><div class="mt-4 space-y-3">${closedMissions.map(m => { const user = DB.users.find(u => u.id === m.assignedTo); const timeAgo = formatTimeAgo(m.statusTimestamp); return `<div class="text-sm p-3 rounded-md" style="background-color: var(--card-bg);"><p class="font-semibold">"${m.description}"</p><p>Assigned to: <span class="font-bold">${user ? user.name : 'Unknown'}</span></p><p>Status: <span class="font-bold ${statusStyles[m.status] || ''}">${m.status.replace(/([A-Z])/g, ' $1').trim()}</span> (${timeAgo})</p></div>`; }).join('')}</div></details></div>`; }
+function renderAddMissionPage() { const pointsGuidance = `<div class="p-3 rounded-lg text-sm" style="background-color: var(--subtle-bg);"><p class="font-bold">Point Guidelines:</p><ul class="list-disc list-inside"><li><b>5-10 Points:</b> Quick tasks (under 5 mins).</li><li><b>15-25 Points:</b> Standard chores (10-20 mins).</li><li><b>30-50 Points:</b> Big efforts (30+ mins or high importance).</li></ul></div>`; const formTitle = 'Add or Suggest a Mission'; const submitText = currentUser.role === 'Parent' ? 'Assign Mission' : 'Suggest Mission'; const typeDropdown = currentUser.role === 'Parent' ? `<div><label class="block font-medium">Type</label><select name="type" class="w-full p-2 border rounded mt-1"><option value="Chore">Chore</option><option value="Challenge">Challenge</option></select></div>` : ''; return `<div class="p-6 rounded-lg shadow-lg" style="background-color: var(--card-bg);"><h2 class="font-bangers text-4xl text-center mb-4" style="color: var(--header-color);">${formTitle}</h2><form id="add-suggest-mission-form" class="space-y-4">${pointsGuidance}<div><label class="block font-medium">Description</label><input type="text" name="description" placeholder="E.g., Get someone to hum a song" class="w-full p-2 border rounded mt-1"></div><div><label class="block font-medium">Points</label><input type="number" name="points" placeholder="e.g., 5" class="w-full p-2 border rounded mt-1"></div>${typeDropdown}<div><label class="block font-medium">Assign To</label><select name="target" class="w-full p-2 border rounded mt-1"><option value="Everyone">Everyone</option><option value="Children">All Children</option><option value="Parents">All Parents</option><optgroup label="Specific Person">${DB.users.map(u => `<option value="${u.id}">${u.name}</option>`).join('')}</optgroup></select></div><button type="submit" class="w-full bg-amber-500 text-white p-2 rounded-lg btn">${submitText}</button></form></div>`; }
+function renderAdminPage() { const suggestedMissions = DB.suggestedMissions; return `<div class="p-6 rounded-lg shadow-inner" style="background-color: var(--subtle-bg);"><h2 class="font-bangers text-4xl text-center text-slate-700">Approve Missions</h2>${suggestedMissions.length > 0 ? `<div class="space-y-4 mt-4">${suggestedMissions.map(s => `<form id="form-sugg-${s.id}" class="p-4 rounded-lg shadow space-y-3" style="background-color: var(--card-bg);"><p class="text-sm">Suggested by: <span class="font-bold">${DB.users.find(u=>u.id===s.suggestedBy).name}</span></p><div><label class="block text-sm font-medium">Description</label><input type="text" name="description" value="${s.description}" class="w-full p-2 border rounded mt-1"></div><div class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium">Points</label><input type="number" name="points" value="${s.points}" class="w-full p-2 border rounded mt-1"></div><div><label class="block text-sm font-medium">Type</label><select name="type" class="w-full p-2 border rounded mt-1"><option value="Chore" ${s.type === 'Chore' ? 'selected' : ''}>Chore</option><option value="Challenge" ${s.type === 'Challenge' ? 'selected' : ''}>Challenge</option></select></div></div><div class="flex justify-end space-x-2"><button type="button" data-suggestion-id="${s.id}" class="btn-deny-suggestion bg-red-500 text-white px-3 py-1 rounded btn">Deny</button><button type="button" data-suggestion-id="${s.id}" class="btn-approve-suggestion bg-green-500 text-white px-3 py-1 rounded btn">Edit & Approve</button></div></form>`).join('')}</div>` : `<p class="text-center mt-4">No missions are waiting for approval.</p>`}</div>`; }
 function renderMissionBankPage() { return `<div class="p-6 rounded-lg shadow-lg" style="background-color: var(--card-bg);"><h2 class="font-bangers text-4xl text-center mb-4" style="color: var(--header-color);">Mission Bank</h2><p class="text-center mb-4">A list of all possible missions in the game.</p><div class="space-y-3">${DB.missionBank.map(m => `<div class="p-4 rounded-lg" style="background-color: var(--subtle-bg);"><p class="font-bold">${m.description}</p><p class="text-sm"><b>Points:</b> ${m.points} | <b>Type:</b> ${m.type} | <b>For:</b> ${m.targetAudience.join(', ')}</p></div>`).join('')}</div></div>`; }
 function renderSettingsPage() { return `<div class="p-6 rounded-lg shadow-lg" style="background-color: var(--card-bg);"><h2 class="font-bangers text-4xl text-center mb-4" style="color: var(--header-color);">Settings</h2><div class="space-y-4"> <div class="flex items-center justify-between"><label for="dark-mode-toggle" class="font-medium">Dark Mode</label><div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in"><input type="checkbox" name="dark-mode-toggle" id="dark-mode-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${DB.settings.darkMode ? 'checked' : ''}/><label for="dark-mode-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label></div></div> <div class="border-t pt-4" style="border-color: var(--border-color);"><button id="btn-check-timeouts" class="w-full bg-yellow-500 text-white p-2 rounded-lg btn">Check for Timed-Out Missions</button></div> </div> <style>.toggle-checkbox:checked { right: 0; border-color: #60a5fa; } .toggle-checkbox:checked + .toggle-label { background-color: #60a5fa; }</style></div>`; }
 
 // --- HELPER FUNCTIONS ---
+function formatTimeAgo(isoString) { const date = new Date(isoString); const now = new Date(); const seconds = Math.round((now - date) / 1000); const minutes = Math.round(seconds / 60); const hours = Math.round(minutes / 60); const days = Math.round(hours / 24); if (seconds < 60) return `${seconds}s ago`; if (minutes < 60) return `${minutes}m ago`; if (hours < 24) return `${hours}h ago`; return `${days}d ago`; }
 function renderMissionCard(mission) { let missionClass = '', actionButton = ''; let deadlineText = ''; if (mission.deadline && mission.status === 'Active') { const deadline = new Date(mission.deadline); const now = new Date(); const diff = deadline - now; if (diff > 0) { const hours = Math.floor(diff / 3600000); const minutes = Math.floor((diff % 3600000) / 60000); deadlineText = `<p class="text-xs text-red-400">Due in ${hours}h ${minutes}m</p>`; } } switch (mission.status) { case 'Active': missionClass = mission.type === 'Challenge' ? 'mission-challenge' : 'mission-chore'; actionButton = `<button data-instance-id="${mission.instanceId}" class="btn-mark-complete bg-blue-500 text-white px-4 py-2 rounded-lg btn">Complete</button>`; break; case 'PendingVerification': missionClass = 'mission-pending'; actionButton = `<div class="text-right"><div class="text-red-500 font-semibold">Pending</div><button data-instance-id="${mission.instanceId}" class="btn-unmark-mission text-xs text-gray-400 hover:underline">Undo</button></div>`; break; case 'Completed': missionClass = 'mission-completed'; actionButton = `<div class="font-semibold" style="color: var(--text-color-subtle);">Done!</div>`; break; case 'Failed': missionClass = 'mission-failed'; actionButton = `<div class="font-semibold text-red-300">Failed</div>`; break; } return `<div class="mission-card ${missionClass} p-4 rounded-lg shadow flex justify-between items-center"><div><p class="font-bold mission-description">${mission.description}</p><p class="text-sm" style="color: var(--text-color-subtle);">${mission.points} Points</p>${deadlineText}</div>${actionButton}</div>`; }
 function showModal(title, content, showCloseButton = true) { const modalContainer = document.getElementById('modal-container'); const modal = document.createElement('div'); modal.className = 'modal-backdrop'; modal.innerHTML = `<div class="modal-content"><h2 class="text-2xl font-bold mb-4">${title}</h2><div>${content}</div>${showCloseButton ? '<button class="btn-close-modal mt-6 bg-gray-500 text-white px-4 py-2 rounded-lg btn">Close</button>' : ''}</div>`; modalContainer.appendChild(modal); }
 function closeModal() { document.getElementById('modal-container').innerHTML = ''; }
