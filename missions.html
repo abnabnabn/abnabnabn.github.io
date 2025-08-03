@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Family Quest v1.17 (Mobile Fix)</title>
+    <title>Family Missions v1.35 (Auth Refactor)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Bangers&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
@@ -39,19 +38,18 @@
         html {
             -webkit-tap-highlight-color: transparent;
         }
-        
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            overflow: hidden; 
+            overflow: hidden;
         }
-        
+
         #app-shell {
             display: flex;
             flex-direction: column;
-            /* CHANGE: Use a CSS variable for height, set by JS. This fixes mobile browser viewport issues. */
             height: var(--app-height, 100vh);
             max-width: 42rem;
             margin: 0 auto;
@@ -89,16 +87,17 @@
         .mission-chore { border-left-color: #3b82f6; }
         .mission-challenge { border-left-color: #f59e0b; }
         .mission-bounty { border-left-color: #16a34a; }
-        .mission-pending { border-left-color: #ef4444; }
+        .mission-pending { border-left-color: #22c55e; }
         .mission-completed { border-left-color: #6b7280; text-decoration: line-through; opacity: 0.7; }
         .mission-failed { border-left-color: #7f1d1d; opacity: 0.6; }
+        .mission-secret { border-left-color: #6d28d9; }
         .mission-failed .mission-description, .mission-completed .mission-description {
              text-decoration: line-through;
         }
 
         .btn { transition: all 0.2s ease-in-out; }
         .btn:hover { transform: scale(1.05); }
-        
+
         .nav-item {
             cursor: pointer;
             transition: color 0.2s;
@@ -112,7 +111,7 @@
             height: 28px;
             stroke: currentColor;
         }
-        
+
         .modal-backdrop {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(0,0,0,0.7);
@@ -125,11 +124,12 @@
         .hidden { display: none; }
         input, select, textarea {
             background-color: var(--bg-color);
-            border-color: var(--border-color);
+            border: 1px solid var(--border-color);
             color: var(--text-color);
+            border-radius: 0.375rem;
         }
-        input::placeholder { color: #6b7280; }
-        
+        input::placeholder, textarea::placeholder { color: #6b7280; }
+
         .swiper-container {
             width: 100%;
             height: 100%;
@@ -211,61 +211,7 @@
 
 
 <script>
-// --- DATABASE SIMULATION ---
-const DB = {
-    settings: {
-        darkMode: true,
-    },
-    missionBank: [
-        { id: "mb1", description: "Tidy your bedroom", points: 25, type: 'Chore', targetAudience: ['Children'] },
-        { id: "mb2", description: "Empty the dishwasher", points: 10, type: 'Chore', targetAudience: ['Everyone'] },
-        { id: "mb3", description: "Help make a vegetarian dinner", points: 30, type: 'Chore', targetAudience: ['Everyone'] },
-        { id: "mb4", description: "Walk the dog", points: 15, type: 'Bounty', targetAudience: ['Everyone'] },
-        { id: "mb5", description: "Take out the recycling bins", points: 10, type: 'Bounty', targetAudience: ['Everyone'] },
-        { id: "mb6", description: "Give someone a genuine compliment", points: 5, type: 'Challenge', targetAudience: ['Everyone'] },
-        { id: "mb7", description: "Get someone to say the word 'waffle'", points: 5, type: 'Challenge', targetAudience: ['Everyone'] },
-        { id: "mb8", description: "Spend 20 minutes practising your musical instrument", points: 20, type: 'Chore', targetAudience: ['Lucy', 'Emilia', 'Thomas'] },
-        { id: "mb9", description: "Tidy the shoe rack by the door", points: 10, type: 'Bounty', targetAudience: ['Everyone'] },
-        { id: "mb10", description: "Start a conversation with someone about their day", points: 5, type: 'Challenge', targetAudience: ['Everyone'] },
-        { id: "mb11", description: "Find something that belongs to someone else and put it away", points: 5, type: 'Challenge', targetAudience: ['Everyone'] },
-        { id: "mb12", description: "Get someone to hum a song without asking them to", points: 15, type: 'Challenge', targetAudience: ['Everyone'] },
-        { id: "mb13", description: "Secretly place a sock in someone's pocket", points: 20, type: 'Challenge', targetAudience: ['Everyone'] },
-        { id: "mb14", description: "Convince someone it's a different day of the week", points: 25, type: 'Challenge', targetAudience: ['Everyone'] },
-        { id: "mb15", description: "Get someone to scratch their head in confusion", points: 10, type: 'Challenge', targetAudience: ['Everyone'] },
-        { id: "mb16", description: "Hide someone's keys and 'help' them find them", points: 30, type: 'Challenge', targetAudience: ['Everyone'] },
-        { id: "mb17", description: "Clean your own bathroom mirror and sink", points: 15, type: 'Chore', targetAudience: ['Everyone'] },
-        { id: "mb18", description: "Cook dinner for the family", points: 50, type: 'Bounty', targetAudience: ['Parents'] },
-        { id: "mb19", description: "Do a load of laundry and put it away", points: 20, type: 'Chore', targetAudience: ['Everyone'] },
-        { id: "mb20", description: "Get someone to wear a hat indoors for 10 minutes", points: 15, type: 'Challenge', targetAudience: ['Everyone'] },
-        { id: "mb21", description: "Balance a spoon on your nose for 10 seconds", points: 10, type: 'Challenge', targetAudience: ['Everyone'] },
-        { id: "mb22", description: "Work a movie quote into a normal conversation", points: 10, type: 'Challenge', targetAudience: ['Everyone'] },
-        { id: "mb23", description: "Take the bins out on bin day", points: 10, type: 'Bounty', targetAudience: ['Everyone'] },
-        { id: "mb24", description: "Mow the lawn", points: 40, type: 'Bounty', targetAudience: ['Parents', 'Dad'] },
-        { id: "mb25", description: "Plan the weekly food shop", points: 25, type: 'Chore', targetAudience: ['Parents'] },
-        { id: "mb26", description: "Get someone to say 'supercalifragilisticexpialidocious'", points: 30, type: 'Challenge', targetAudience: ['Everyone'] },
-        { id: "mb27", description: "Make a cup of tea for someone without being asked", points: 5, type: 'Challenge', targetAudience: ['Everyone'] },
-    ],
-    activeMissions: [],
-    bountyBoard: [],
-    users: [
-        { id: 'dad', name: 'Dad', role: 'Parent', weeklyScore: 0, allTimeScore: 1250 },
-        { id: 'mum', name: 'Mum', role: 'Parent', weeklyScore: 0, allTimeScore: 1100 },
-        { id: 'lucy', name: 'Lucy', role: 'Child', weeklyScore: 0, allTimeScore: 800 },
-        { id: 'emilia', name: 'Emilia', role: 'Child', weeklyScore: 0, allTimeScore: 750 },
-        { id: 'thomas', name: 'Thomas', role: 'Child', weeklyScore: 0, allTimeScore: 690 },
-    ],
-    verificationLog: [],
-    suggestedMissions: [],
-    notifications: [],
-};
-
-// --- APPLICATION STATE ---
-let currentUser = DB.users[0];
-let currentPage = 'my_missions';
-let pageOrder = [];
-let swiper;
-
-// --- ICONS ---
+// --- 1. ICONS ---
 const ICONS = {
     my_missions: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>`,
     verify_missions: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
@@ -273,286 +219,689 @@ const ICONS = {
     leaderboard: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9a9 9 0 119 0zM12 12.75h.008v.008H12v-.008z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 15.75a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0v-2.25a.75.75 0 01.75-.75z" /></svg>`,
     add_mission: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
     admin_panel: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
-    settings: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.438.995s.145.755.438.995l1.003.827c.487.402.668 1.07.26 1.431l-1.296 2.247a1.125 1.125 0 01-1.37.49l-1.217-.456c-.355-.133-.75-.072-1.075.124a6.57 6.57 0 01-.22.127c-.332.183-.582.495-.645.87l-.213 1.281c-.09.543-.56.94-1.11.94h-2.593c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.063-.374-.313-.686-.645-.87a6.52 6.52 0 01-.22-.127c-.324-.196-.72-.257-1.075-.124l-1.217.456a1.125 1.125 0 01-1.37-.49l-1.296-2.247a1.125 1.125 0 01.26-1.431l1.003-.827c.293-.24.438.613.438.995s-.145-.755-.438-.995l-1.003-.827a1.125 1.125 0 01-.26-1.431l1.296-2.247a1.125 1.125 0 011.37-.49l1.217.456c.355.133.75.072 1.075.124.073-.044.146-.087.22-.127.332-.183.582-.495.645-.87l.213-1.281z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`,
+    settings: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.438.995s.145.755.438.995l1.003.827c.487.402.668 1.07.26 1.431l-1.296 2.247a1.125 1.125 0 01-1.37.49l-1.217-.456c-.355-.133-.75-.072-1.075.124a6.57 6.57 0 01-.22.127c-.332.183-.582.495-.645.87l-.213 1.281c-.09.543-.56.94-1.11.94h-2.593c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.063-.374-.313-.686-.645-.87a6.52 6.52 0 01-.22-.127c-.324-.196-.72-.257-1.075-.124l-1.217.456a1.125 1.125 0 01-1.37-.49l-1.296-2.247a1.125 1.125 0 01.26-1.431l1.003-.827c.293-.24.438.613-.438.995s-.145-.755-.438-.995l-1.003-.827a1.125 1.125 0 01-.26-1.431l1.296-2.247a1.125 1.125 0 011.37.49l1.217.456c.355.133.75.072 1.075.124.073-.044.146-.087.22-.127.332-.183.582-.495-.645-.87l.213-1.281z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`,
     mission_bank: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" /></svg>`,
 };
 
+// --- 2. APPLICATION STATE ---
+const State = {
+    currentUser: null,
+    currentPage: 'my_missions',
+    pageOrder: [],
+    swiper: null,
+    missionInReview: null,
+    db: null, 
 
-// --- CORE LOGIC ---
-// CHANGE: Added function to handle viewport height on mobile
-function setAppHeight() {
-    const doc = document.documentElement;
-    doc.style.setProperty('--app-height', `${window.innerHeight}px`);
-}
+    loadData(user, gameState) {
+        this.db = gameState;
+        this.currentUser = user;
+    },
 
-function initializeGame() {
-    setAppHeight(); // Set initial height
-    window.addEventListener('resize', setAppHeight); // Adjust on resize
+    setCurrentUser(userId) {
+        this.currentUser = this.db.users.find(u => u.id === userId);
+    }
+};
 
-    applyTheme();
-    const userSwitcher = document.getElementById('user-switcher');
-    userSwitcher.innerHTML = DB.users.map(u => `<option value="${u.id}">Viewing as: ${u.name} (${u.role})</option>`).join('');
-    userSwitcher.addEventListener('change', (e) => {
-        currentUser = DB.users.find(u => u.id === e.target.value);
-        buildAndNavigate('my_missions');
-    });
+// --- 3. API LAYER ---
+const MockAPI = {
+    _db: null,
+    _authToken: null,
+    _initialData: {
+        settings: { darkMode: true },
+        missionBank: [
+            { id: "mb1", description: "Tidy your bedroom", points: 25, type: 'Chore', targetAudience: ['Children'], createdBy: 'ai' },
+            { id: "mb2", description: "Empty the dishwasher", points: 10, type: 'Chore', targetAudience: ['Everyone'], createdBy: 'ai' },
+            { id: "mb27", description: "Make a cup of tea for someone without being asked", points: 5, type: 'Challenge', targetAudience: ['Everyone'], createdBy: 'ai' },
+            { id: "mb28", description: "Don't wet the bed tonight", points: 50, type: 'Secret', targetAudience: ['Thomas'], createdBy: 'ai' },
+            { id: "mb29", description: "Plan a surprise date night", points: 100, type: 'Secret', targetAudience: ['Parents'], createdBy: 'ai' },
+        ],
+        users: [
+            { id: 'dad', name: 'Dad', role: 'Parent', weeklyScore: 0, allTimeScore: 1250 },
+            { id: 'mum', name: 'Mum', role: 'Parent', weeklyScore: 0, allTimeScore: 1100 },
+            { id: 'lucy', name: 'Lucy', role: 'Child', weeklyScore: 0, allTimeScore: 800 },
+            { id: 'emilia', name: 'Emilia', role: 'Child', weeklyScore: 0, allTimeScore: 750 },
+            { id: 'thomas', name: 'Thomas', role: 'Child', weeklyScore: 0, allTimeScore: 690 },
+        ],
+        activeMissions: [],
+        bountyBoard: [],
+        verificationLog: [],
+        suggestedMissions: [],
+        notifications: [],
+    },
 
-    if (DB.activeMissions.length === 0) setupInitialData();
-    buildAndNavigate(currentPage);
-}
-
-function setupInitialData() {
-    DB.activeMissions = []; 
-    DB.bountyBoard = []; 
-    DB.users.forEach(u => { u.weeklyScore = 0; }); 
-
-    let missionPool = [...DB.missionBank].sort(() => 0.5 - Math.random());
+    _simulateNetwork(work) {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                const result = work();
+                resolve(JSON.parse(JSON.stringify(result)));
+            }, 200);
+        });
+    },
     
-    const getMission = (type) => {
-        if (missionPool.length === 0) return null; 
-        const index = type ? missionPool.findIndex(m => m.type === type) : -1;
-        if (index > -1) return missionPool.splice(index, 1)[0];
-        return missionPool.pop(); 
-    };
+    async login(userId) {
+        const gameState = await this.getGameState();
+        const user = gameState.users.find(u => u.id === userId);
+        if (user) {
+            this._authToken = `mock-jwt-token-for-${userId}`;
+            return Promise.resolve({ user: JSON.parse(JSON.stringify(user)), gameState: gameState });
+        } else {
+            return Promise.reject("User not found");
+        }
+    },
 
-    const assignToUser = (userId, count, type) => {
-        for (let i = 0; i < count; i++) {
+    getGameState() {
+        return this._simulateNetwork(() => {
+            if (!this._db) {
+                this._db = JSON.parse(JSON.stringify(this._initialData));
+                if (this._db.activeMissions.length === 0) {
+                    this._setupInitialData();
+                }
+            }
+            return this._db;
+        });
+    },
+    
+    _assignMission(missionId, userId) {
+        const mission = this._db.missionBank.find(m => m.id === missionId);
+        if (!mission) return;
+        const newInstance = { ...mission, instanceId: `mi_${Date.now()}_${Math.random()}`, assignedTo: userId, status: 'Active', statusTimestamp: new Date().toISOString() };
+        this._db.activeMissions.push(newInstance);
+    },
+
+    _topUpBountyBoard() {
+        const BOUNTY_TARGET = 5;
+        const currentBountyChallenges = this._db.bountyBoard.filter(m => m.type === 'Challenge').length;
+        if (currentBountyChallenges >= BOUNTY_TARGET) return;
+
+        const needed = BOUNTY_TARGET - currentBountyChallenges;
+        const inPlayIds = new Set([...this._db.activeMissions.map(m => m.id), ...this._db.bountyBoard.map(m => m.id)]);
+        const availableChallenges = this._db.missionBank.filter(m => m.type === 'Challenge' && !inPlayIds.has(m.id));
+
+        for (let i = 0; i < needed && i < availableChallenges.length; i++) {
+            this._db.bountyBoard.push(availableChallenges[i]);
+        }
+    },
+
+    _setupInitialData() {
+        let missionPool = [...this._db.missionBank].sort(() => 0.5 - Math.random());
+        const getMission = (type) => {
+            if (missionPool.length === 0) return null;
+            const index = type ? missionPool.findIndex(m => m.type === type) : -1;
+            if (index > -1) return missionPool.splice(index, 1)[0];
+            return missionPool.pop();
+        };
+        const assignDemoMission = (userId, status, type, timestamp) => {
             const mission = getMission(type);
             if (mission) {
-                assignMission(mission.id, userId);
-            } else {
-                break; 
-            }
-        }
-    };
-
-    let mission;
-
-    // Lucy: Completed, Pending, Failed, Active
-    mission = getMission('Challenge');
-    if (mission) {
-        const lucyCompleted = { ...mission, instanceId: 'mi_lucy_1', assignedTo: 'lucy', status: 'Completed', statusTimestamp: new Date(Date.now() - 86400000 * 2).toISOString() };
-        const user = DB.users.find(u=>u.id==='lucy');
-        if(user) user.weeklyScore += lucyCompleted.points;
-        DB.activeMissions.push(lucyCompleted);
-    }
-    
-    mission = getMission('Chore');
-    if (mission) {
-        const lucyPending = { ...mission, instanceId: 'mi_lucy_2', assignedTo: 'lucy', status: 'PendingVerification', statusTimestamp: new Date(Date.now() - 3600000).toISOString() };
-        DB.activeMissions.push(lucyPending);
-    }
-    
-    mission = getMission('Chore');
-    if (mission) {
-        const lucyFailed = { ...mission, instanceId: 'mi_lucy_3', assignedTo: 'lucy', status: 'Failed', statusTimestamp: new Date().toISOString() };
-        DB.activeMissions.push(lucyFailed);
-    }
-    assignToUser('lucy', 2, 'Challenge');
-
-    // Emilia: Pending and Active
-    mission = getMission('Chore');
-    if (mission) {
-        const emiliaPending = { ...mission, instanceId: 'mi_emilia_1', assignedTo: 'emilia', status: 'PendingVerification', statusTimestamp: new Date(Date.now() - 7200000).toISOString() };
-        DB.activeMissions.push(emiliaPending);
-    }
-    assignToUser('emilia', 4, 'Challenge');
-
-    // Thomas: Timed-out (Failed) and Active
-    mission = getMission('Chore');
-    if (mission) {
-        const thomasTimed = { ...mission, instanceId: 'mi_thomas_1', assignedTo: 'thomas', status: 'Active', deadline: new Date(Date.now() - 60000).toISOString() };
-        thomasTimed.status = 'Failed';
-        thomasTimed.statusTimestamp = new Date().toISOString();
-        DB.activeMissions.push(thomasTimed);
-    }
-    assignToUser('thomas', 4, 'Chore');
-
-    // Dad & Mum: All active
-    assignToUser('dad', 5, 'Challenge');
-    assignToUser('mum', 5, 'Chore');
-    
-    DB.bountyBoard = [...missionPool];
-
-    addNotification('lucy', 'Welcome to Family Missions! Check out your first missions.');
-}
-
-
-function buildAndNavigate(targetPageId) {
-    currentPage = targetPageId;
-    buildPageOrder();
-    renderNavigation();
-    buildAllPages();
-    initSwiper();
-    navigateToPage(targetPageId, false);
-    attachEventListeners();
-}
-
-function navigateToPage(targetPageId, animate = true) {
-    currentPage = targetPageId;
-    renderNavigation();
-    const pageIndex = pageOrder.indexOf(targetPageId);
-    if (swiper && pageIndex !== -1 && pageIndex < swiper.slides.length) {
-        swiper.slideTo(pageIndex, animate ? 300 : 0);
-    }
-}
-
-function buildPageOrder() {
-     pageOrder = [
-        'my_missions',
-        'verify_missions',
-        'bounty_board',
-        'leaderboard',
-        'add_mission',
-    ];
-    if (currentUser.role === 'Parent') {
-        pageOrder.push('mission_bank', 'admin_panel');
-    }
-    pageOrder.push('settings');
-}
-
-function renderNavigation() {
-    const nav = document.getElementById('app-nav');
-    nav.innerHTML = pageOrder.map(pageId => {
-        const item = {
-            id: pageId,
-            label: pageId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-            icon: ICONS[pageId]
-        };
-        if (item.label === 'My Missions') item.label = 'Missions';
-        if (item.label === 'Mission Bank') item.label = 'Bank';
-        if (item.label === 'Admin Panel') item.label = 'Approve';
-        
-        let badge = '';
-        if (item.id === 'verify_missions') {
-            const pendingCount = DB.activeMissions.filter(q => q.status === 'PendingVerification' && q.assignedTo !== currentUser.id).length;
-            if (pendingCount > 0) {
-                badge = `<span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">${pendingCount}</span>`;
-            }
-        }
-        return `
-        <div data-page="${item.id}" class="nav-item flex flex-col items-center justify-center w-16 h-16 rounded-lg ${currentPage === item.id ? 'active' : ''}" title="${item.label}">
-            <div class="relative">${item.icon}${badge}</div>
-            <span class="text-xs mt-1">${item.label}</span>
-        </div>
-    `}).join('');
-}
-
-function buildAllPages() {
-    const track = document.getElementById('page-track');
-    let allPagesHtml = '';
-    for (const pageId of pageOrder) {
-        let pageHtml = '';
-        switch (pageId) {
-            case 'my_missions': pageHtml = `<div>${renderMyMissionsPage()}</div>`; break;
-            case 'verify_missions': pageHtml = `<div>${renderVerifyMissionsPage()}</div>`; break;
-            case 'bounty_board': pageHtml = `<div>${renderBountyBoardPage()}</div>`; break;
-            case 'leaderboard': pageHtml = `<div>${renderLeaderboardPage()}</div>`; break;
-            case 'add_mission': pageHtml = `<div>${renderAddMissionPage()}</div>`; break;
-            case 'admin_panel': pageHtml = `<div>${renderAdminPage()}</div>`; break;
-            case 'mission_bank': pageHtml = `<div>${renderMissionBankPage()}</div>`; break;
-            case 'settings': pageHtml = `<div>${renderSettingsPage()}</div>`; break;
-        }
-        allPagesHtml += `<div class="swiper-slide">${pageHtml}</div>`;
-    }
-    track.innerHTML = allPagesHtml;
-}
-
-function initSwiper() {
-    if (swiper) {
-        swiper.destroy(true, true);
-    }
-    swiper = new Swiper('#app-main', {
-        mousewheel: {
-            forceToAxis: true,
-        },
-        on: {
-            slideChange: function () {
-                const newPageId = pageOrder[this.activeIndex];
-                if (newPageId) {
-                    currentPage = newPageId;
-                    renderNavigation();
+                const newMission = { ...mission, instanceId: `mi_${userId}_${Math.random()}`, assignedTo: userId, status, statusTimestamp: timestamp };
+                if (status === 'Completed') {
+                    const user = this._db.users.find(u => u.id === userId);
+                    if (user) user.weeklyScore += mission.points;
                 }
-            },
-            slideChangeTransitionStart: function () {
-                this.allowTouchMove = false;
-            },
-            slideChangeTransitionEnd: function () {
-                this.allowTouchMove = true;
-            },
-        },
-    });
-}
+                if (status === 'Failed' && !timestamp) newMission.deadline = new Date(Date.now() - 60000).toISOString();
+                this._db.activeMissions.push(newMission);
+            }
+        };
+        assignDemoMission('lucy', 'Completed', 'Challenge', new Date(Date.now() - 86400000 * 2).toISOString());
+        assignDemoMission('lucy', 'PendingVerification', 'Chore', new Date(Date.now() - 3600000).toISOString());
+        assignDemoMission('lucy', 'Failed', 'Chore', new Date().toISOString());
+        for(let i=0; i<2; i++) { const mission = getMission('Challenge'); if (mission) this._assignMission(mission.id, 'lucy'); }
+        assignDemoMission('emilia', 'PendingVerification', 'Chore', new Date(Date.now() - 7200000).toISOString());
+        for(let i=0; i<4; i++) { const mission = getMission('Challenge'); if (mission) this._assignMission(mission.id, 'emilia'); }
+        assignDemoMission('thomas', 'Failed', 'Chore');
+        for(let i=0; i<4; i++) { const mission = getMission('Chore'); if (mission) this._assignMission(mission.id, 'thomas'); }
+        for(let i=0; i<5; i++) { const mission = getMission('Challenge'); if (mission) this._assignMission(mission.id, 'dad'); }
+        for(let i=0; i<5; i++) { const mission = getMission('Chore'); if (mission) this._assignMission(mission.id, 'mum'); }
+        
+        this._db.bountyBoard = [...missionPool];
+        this._topUpBountyBoard();
+    },
 
-// --- LOGIC FUNCTIONS ---
-function checkTimeouts() { const now = new Date(); let changed = false; DB.activeMissions.forEach(mission => { if (mission.status === 'Active' && mission.deadline) { const deadlineDate = new Date(mission.deadline); if (now > deadlineDate) { mission.status = 'Failed'; mission.statusTimestamp = new Date().toISOString(); addNotification(mission.assignedTo, `Mission timed out: "${mission.description}"`); changed = true; } } }); if (changed) { showModal("Missions Timed Out!", "Some missions have expired and are now marked as Failed."); buildAndNavigate(currentPage); } else { showModal("All Clear!", "No active missions have timed out."); } }
-function addNotification(userId, message) { DB.notifications.push({ id: `notif_${Date.now()}`, userId, message, read: false }); }
-function getMissionFromBank(id) { return JSON.parse(JSON.stringify(DB.missionBank.find(m => m.id === id))); }
-function assignMission(missionId, userId) { const mission = getMissionFromBank(missionId); if (!mission) return; const newMissionInstance = { ...mission, instanceId: `mi_${Date.now()}_${Math.random()}`, assignedTo: userId, status: 'Active', statusTimestamp: new Date().toISOString() }; DB.activeMissions.push(newMissionInstance); }
-function claimBounty(missionId) { const userMissions = DB.activeMissions.filter(m => m.assignedTo === currentUser.id && m.status !== 'Completed'); if (userMissions.length >= 10) { showModal("Too Many Missions!", "You must complete some missions before claiming new ones. Max 10 active missions."); return; } const missionIndex = DB.bountyBoard.findIndex(m => m.id === missionId); if (missionIndex > -1) { const mission = DB.bountyBoard[missionIndex]; DB.bountyBoard.splice(missionIndex, 1); const newMissionInstance = { ...mission, instanceId: `mi_${Date.now()}_${Math.random()}`, assignedTo: currentUser.id, status: 'Active', statusTimestamp: new Date().toISOString() }; DB.activeMissions.push(newMissionInstance); addNotification(currentUser.id, `You have claimed the bounty: "${mission.description}"!`); buildAndNavigate(currentPage); } }
-// CHANGE: Added confetti() to this function
-function markMissionComplete(instanceId) { const mission = DB.activeMissions.find(m => m.instanceId === instanceId); if (!mission) return; confetti(); mission.status = 'PendingVerification'; mission.statusTimestamp = new Date().toISOString(); showModal("Mission Submitted!", "Another family member will need to verify this mission from the 'Verify Missions' page."); buildAndNavigate(currentPage); }
-function unmarkMission(instanceId) { const mission = DB.activeMissions.find(m => m.instanceId === instanceId); if (mission && mission.status === 'PendingVerification') { mission.status = 'Active'; mission.statusTimestamp = new Date().toISOString(); buildAndNavigate(currentPage); } }
-function verifyMission(instanceId, isApproved) { const mission = DB.activeMissions.find(m => m.instanceId === instanceId); if (!mission) return; const user = DB.users.find(u => u.id === mission.assignedTo); if (isApproved) { mission.status = 'Completed'; user.weeklyScore += mission.points; user.allTimeScore += mission.points; DB.verificationLog.push(`${currentUser.name} approved '${mission.description}' for ${user.name}.`); addNotification(user.id, `Your mission "${mission.description}" was approved by ${currentUser.name}! You earned ${mission.points} points.`); confetti(); showModal("Mission Approved!", `${user.name} earned ${mission.points} points!`); } else { mission.status = 'Active'; addNotification(user.id, `Your mission "${mission.description}" was denied by ${currentUser.name} and is back on your list.`); showModal("Mission Denied", "The mission has been returned to the user's active list."); } mission.statusTimestamp = new Date().toISOString(); buildAndNavigate(currentPage); }
-function addOrSuggestMission(event) { event.preventDefault(); const form = event.target; const description = form.elements.description.value; const points = parseInt(form.elements.points.value); const targetId = form.elements.target.value; const type = form.elements.type ? form.elements.type.value : 'Challenge'; const isSelfAssignedParent = currentUser.role === 'Parent' && targetId === currentUser.id; if (!description || !points) { showModal("Incomplete Form", "Please fill out the description and points."); return; } if (currentUser.role === 'Child' || isSelfAssignedParent) { const newSuggestion = { id: `sugg_${Date.now()}`, description, points, targetAudience: [targetId || 'Everyone'], type, suggestedBy: currentUser.id }; DB.suggestedMissions.push(newSuggestion); showModal("Suggestion Sent!", "A parent will review your new mission idea. Thanks!"); } else { if (!targetId) { showModal("Incomplete Form", "Please select who to assign this mission to."); return; } const newMission = { id: `mb_direct_${Date.now()}`, description, points, type, targetAudience: [targetId] }; DB.missionBank.push(newMission); assignMission(newMission.id, targetId); addNotification(targetId, `You have been assigned a new mission: "${description}".`); showModal("Mission Assigned!", `A new mission has been assigned to ${DB.users.find(u=>u.id === targetId).name}.`); } form.reset(); buildAndNavigate(currentPage); }
-function approveSuggestion(suggestionId, isApproved) { const suggestionIndex = DB.suggestedMissions.findIndex(s => s.id === suggestionId); if (suggestionIndex === -1) return; const suggestion = DB.suggestedMissions[suggestionIndex]; if (isApproved) { const form = document.getElementById(`form-sugg-${suggestionId}`); const newDescription = form.elements.description.value; const newPoints = parseInt(form.elements.points.value); const newType = form.elements.type.value; if (currentUser.role === 'Parent' && suggestion.targetAudience.length === 1 && suggestion.targetAudience[0] === currentUser.id && suggestion.suggestedBy === currentUser.id) { showModal("Rule Alert!", "You cannot approve your own self-assigned mission."); return; } const newMission = { ...suggestion, id: `mb_${Date.now()}`, description: newDescription, points: newPoints, type: newType }; delete newMission.suggestedBy; DB.missionBank.push(newMission); addNotification(suggestion.suggestedBy, `Your mission suggestion "${newDescription}" was approved!`); showModal("Mission Approved!", `"${newDescription}" has been added to the Mission Bank.`); } DB.suggestedMissions.splice(suggestionIndex, 1); buildAndNavigate(currentPage); }
-function endGame() { const winner = [...DB.users].sort((a, b) => b.weeklyScore - a.weeklyScore)[0]; let report = `<div class="text-center"><h2 class="text-3xl font-bold mb-4">Weekly Report</h2><div class="bg-amber-100 p-6 rounded-lg text-gray-800"><p class="text-xl">This week's champion is...</p><p class="font-bangers text-5xl text-amber-600 my-4">${winner.name}!</p><p class="text-lg">with a score of ${winner.weeklyScore} points!</p></div><h3 class="text-2xl font-bold mt-8 mb-4">Verification Log</h3><ul class="text-left p-4 rounded-lg text-sm space-y-2" style="background-color: var(--subtle-bg);">${DB.verificationLog.length > 0 ? DB.verificationLog.map(log => `<li>📜 ${log}</li>`).join('') : '<li>No missions were verified this week.</li>'}</ul></div>`; showModal("Game Over!", report, true); }
+    markMissionComplete(instanceId) {
+        return this._simulateNetwork(() => {
+            const mission = this._db.activeMissions.find(m => m.instanceId === instanceId);
+            if (!mission) return false;
+            mission.status = 'PendingVerification';
+            mission.statusTimestamp = new Date().toISOString();
+            return { user: State.currentUser, gameState: this._db };
+        });
+    },
 
-// --- PAGE RENDERING FUNCTIONS ---
-function renderMyMissionsPage() { const myMissions = DB.activeMissions.filter(m => m.assignedTo === currentUser.id); const myNotifications = DB.notifications.filter(n => n.userId === currentUser.id && !n.read); const statusOrder = { 'Active': 1, 'PendingVerification': 2, 'Completed': 3, 'Failed': 4 }; myMissions.sort((a, b) => { const statusDiff = statusOrder[a.status] - statusOrder[b.status]; if (statusDiff !== 0) return statusDiff; return b.points - a.points; }); return `${myNotifications.length > 0 ? `<div class="mb-6 bg-blue-500 bg-opacity-20 border-l-4 border-blue-500 text-blue-300 p-4 rounded-r-lg" role="alert"><p class="font-bold">Notifications</p><ul class="list-disc list-inside">${myNotifications.map(n => `<li>${n.message}</li>`).join('')}</ul></div>` : ''}<div><h2 class="font-bangers text-4xl text-center mb-4 text-blue-400">My Missions (${myMissions.filter(m=>m.status === 'Active' || m.status === 'PendingVerification').length})</h2>${myMissions.length > 0 ? `<div class="space-y-3">${myMissions.map(m => renderMissionCard(m)).join('')}</div>` : `<div class="text-center p-6 rounded-lg shadow" style="background-color: var(--card-bg);"><p>You have no active missions. Go to the Bounty Board to claim one!</p></div>`}</div>`; }
-function renderVerifyMissionsPage() { const missionsToVerify = DB.activeMissions.filter(m => m.status === 'PendingVerification' && m.assignedTo !== currentUser.id); return `<div class="p-6 rounded-lg shadow-lg" style="background-color: var(--card-bg);"><h2 class="font-bangers text-4xl text-center mb-4" style="color: var(--header-color);">Verify Missions</h2>${missionsToVerify.length > 0 ? `<div class="space-y-3">${missionsToVerify.map(m => `<div class="p-4 rounded-lg shadow" style="background-color: var(--subtle-bg);"><p><span class="font-bold">${DB.users.find(u=>u.id===m.assignedTo).name}</span> completed:</p><p class="my-2 text-lg font-semibold">"${m.description}"</p><div class="flex justify-end space-x-2"><button data-instance-id="${m.instanceId}" class="btn-deny-mission bg-red-500 text-white px-3 py-1 rounded btn">Deny</button><button data-instance-id="${m.instanceId}" class="btn-approve-mission bg-green-500 text-white px-3 py-1 rounded btn">Approve</button></div></div>`).join('')}</div>` : `<p class="text-center">No missions are waiting for verification right now.</p>`}</div>`; }
-function renderBountyBoardPage() { return `<div class="p-6 bg-green-800 rounded-lg shadow-lg" style="background-image: url('https://www.transparenttextures.com/patterns/wood-pattern.png');"><h2 class="font-bangers text-4xl text-center mb-4 text-white">Bounty Board</h2>${DB.bountyBoard.length > 0 ? `<div class="space-y-3">${DB.bountyBoard.map(m => `<div class="mission-card mission-bounty p-4 rounded-lg shadow flex justify-between items-center !bg-white !text-gray-800"><div><p class="font-bold">${m.description}</p><p class="text-sm text-green-600 font-semibold">${m.points} Points</p></div><button data-mission-id="${m.id}" class="btn-claim-bounty bg-green-500 text-white px-4 py-2 rounded-lg btn">Claim!</button></div>`).join('')}</div>` : `<div class="text-center text-white p-6"><p>The Bounty Board is empty. Check back later!</p></div>`}</div>`; }
-function renderLeaderboardPage() { const sortedUsers = [...DB.users].sort((a, b) => b.weeklyScore - a.weeklyScore); const podiumColors = ['bg-amber-400', 'bg-slate-400', 'bg-orange-400']; return `<div class="mb-8"><h2 class="font-bangers text-4xl text-center mb-4 text-blue-400">Weekly Leaderboard</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">${sortedUsers.slice(0, 3).map((user, index) => `<div class="${podiumColors[index]} p-4 rounded-lg shadow-lg text-white"><div class="font-bold text-2xl">${index + 1}</div><div class="text-xl font-semibold">${user.name}</div><div class="text-3xl font-bold">${user.weeklyScore} pts</div></div>`).join('')}</div><div class="mt-4 p-3 rounded-lg shadow" style="background-color: var(--card-bg);">${sortedUsers.slice(3).map((user, index) => `<div class="flex justify-between items-center p-2 border-b" style="border-color: var(--border-color);"><span class="font-semibold">${index + 4}. ${user.name}</span><span class="font-bold">${user.weeklyScore} pts</span></div>`).join('')}</div>${renderMissionLogSummary()}<div class="text-center mt-8"><button id="btn-end-game" class="bg-red-600 text-white font-bold px-8 py-4 rounded-lg shadow-xl btn">See Report</button></div></div>`; }
-function renderMissionLogSummary() { const closedMissions = DB.activeMissions.filter(m => m.status !== 'Active').sort((a, b) => new Date(b.statusTimestamp) - new Date(a.statusTimestamp)); if (closedMissions.length === 0) return ''; const statusStyles = { Completed: 'text-gray-500', PendingVerification: 'text-red-500', Failed: 'text-red-800 dark:text-red-400' }; return `<div class="mt-8"><details class="p-4 rounded-lg shadow-inner" style="background-color: var(--subtle-bg);"><summary class="font-bold text-lg flex justify-between items-center"><span>Mission Log</span><svg class="arrow w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg></summary><div class="mt-4 space-y-3">${closedMissions.map(m => { const user = DB.users.find(u => u.id === m.assignedTo); const timeAgo = formatTimeAgo(m.statusTimestamp); return `<div class="text-sm p-3 rounded-md" style="background-color: var(--card-bg);"><p class="font-semibold">"${m.description}"</p><p>Assigned to: <span class="font-bold">${user ? user.name : 'Unknown'}</span></p><p>Status: <span class="font-bold ${statusStyles[m.status] || ''}">${m.status.replace(/([A-Z])/g, ' $1').trim()}</span> (${timeAgo})</p></div>`; }).join('')}</div></details></div>`; }
-function renderAddMissionPage() { const pointsGuidance = `<div class="p-3 rounded-lg text-sm" style="background-color: var(--subtle-bg);"><p class="font-bold">Point Guidelines:</p><ul class="list-disc list-inside"><li><b>5-10 Points:</b> Quick tasks (under 5 mins).</li><li><b>15-25 Points:</b> Standard chores (10-20 mins).</li><li><b>30-50 Points:</b> Big efforts (30+ mins or high importance).</li></ul></div>`; const formTitle = 'Add or Suggest a Mission'; const submitText = currentUser.role === 'Parent' ? 'Assign Mission' : 'Suggest Mission'; const typeDropdown = currentUser.role === 'Parent' ? `<div><label class="block font-medium">Type</label><select name="type" class="w-full p-2 border rounded mt-1"><option value="Chore">Chore</option><option value="Challenge">Challenge</option></select></div>` : ''; return `<div class="p-6 rounded-lg shadow-lg" style="background-color: var(--card-bg);"><h2 class="font-bangers text-4xl text-center mb-4" style="color: var(--header-color);">${formTitle}</h2><form id="add-suggest-mission-form" class="space-y-4">${pointsGuidance}<div><label class="block font-medium">Description</label><input type="text" name="description" placeholder="E.g., Get someone to hum a song" class="w-full p-2 border rounded mt-1"></div><div><label class="block font-medium">Points</label><input type="number" name="points" placeholder="e.g., 5" class="w-full p-2 border rounded mt-1"></div>${typeDropdown}<div><label class="block font-medium">Assign To</label><select name="target" class="w-full p-2 border rounded mt-1"><option value="Everyone">Everyone</option><option value="Children">All Children</option><option value="Parents">All Parents</option><optgroup label="Specific Person">${DB.users.map(u => `<option value="${u.id}">${u.name}</option>`).join('')}</optgroup></select></div><button type="submit" class="w-full bg-amber-500 text-white p-2 rounded-lg btn">${submitText}</button></form></div>`; }
-function renderAdminPage() { const suggestedMissions = DB.suggestedMissions; return `<div class="p-6 rounded-lg shadow-inner" style="background-color: var(--subtle-bg);"><h2 class="font-bangers text-4xl text-center text-slate-700">Approve Missions</h2>${suggestedMissions.length > 0 ? `<div class="space-y-4 mt-4">${suggestedMissions.map(s => `<form id="form-sugg-${s.id}" class="p-4 rounded-lg shadow space-y-3" style="background-color: var(--card-bg);"><p class="text-sm">Suggested by: <span class="font-bold">${DB.users.find(u=>u.id===s.suggestedBy).name}</span></p><div><label class="block text-sm font-medium">Description</label><input type="text" name="description" value="${s.description}" class="w-full p-2 border rounded mt-1"></div><div class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium">Points</label><input type="number" name="points" value="${s.points}" class="w-full p-2 border rounded mt-1"></div><div><label class="block text-sm font-medium">Type</label><select name="type" class="w-full p-2 border rounded mt-1"><option value="Chore" ${s.type === 'Chore' ? 'selected' : ''}>Chore</option><option value="Challenge" ${s.type === 'Challenge' ? 'selected' : ''}>Challenge</option></select></div></div><div class="flex justify-end space-x-2"><button type="button" data-suggestion-id="${s.id}" class="btn-deny-suggestion bg-red-500 text-white px-3 py-1 rounded btn">Deny</button><button type="button" data-suggestion-id="${s.id}" class="btn-approve-suggestion bg-green-500 text-white px-3 py-1 rounded btn">Edit & Approve</button></div></form>`).join('')}</div>` : `<p class="text-center mt-4">No missions are waiting for approval.</p>`}</div>`; }
-function renderMissionBankPage() { return `<div class="p-6 rounded-lg shadow-lg" style="background-color: var(--card-bg);"><h2 class="font-bangers text-4xl text-center mb-4" style="color: var(--header-color);">Mission Bank</h2><p class="text-center mb-4">A list of all possible missions in the game.</p><div class="space-y-3">${DB.missionBank.map(m => `<div class="p-4 rounded-lg" style="background-color: var(--subtle-bg);"><p class="font-bold">${m.description}</p><p class="text-sm"><b>Points:</b> ${m.points} | <b>Type:</b> ${m.type} | <b>For:</b> ${m.targetAudience.join(', ')}</p></div>`).join('')}</div></div>`; }
-function renderSettingsPage() { return `<div class="p-6 rounded-lg shadow-lg" style="background-color: var(--card-bg);"><h2 class="font-bangers text-4xl text-center mb-4" style="color: var(--header-color);">Settings</h2><div class="space-y-4"> <div class="flex items-center justify-between"><label for="dark-mode-toggle" class="font-medium">Dark Mode</label><div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in"><input type="checkbox" name="dark-mode-toggle" id="dark-mode-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${DB.settings.darkMode ? 'checked' : ''}/><label for="dark-mode-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label></div></div> <div class="border-t pt-4" style="border-color: var(--border-color);"><button id="btn-check-timeouts" class="w-full bg-yellow-500 text-white p-2 rounded-lg btn">Check for Timed-Out Missions</button></div> </div> <style>.toggle-checkbox:checked { right: 0; border-color: #60a5fa; } .toggle-checkbox:checked + .toggle-label { background-color: #60a5fa; }</style></div>`; }
+    verifyMission(instanceId, isApproved) {
+        return this._simulateNetwork(() => {
+            const mission = this._db.activeMissions.find(m => m.instanceId === instanceId);
+            if (!mission) return false;
+            const user = this._db.users.find(u => u.id === mission.assignedTo);
+            if (isApproved) {
+                mission.status = 'Completed';
+                user.weeklyScore += mission.points;
+                user.allTimeScore += mission.points;
+            } else {
+                mission.status = 'Active';
+            }
+            mission.statusTimestamp = new Date().toISOString();
+            return { user: State.currentUser, gameState: this._db };
+        });
+    },
 
-// --- HELPER FUNCTIONS ---
-function formatTimeAgo(isoString) { const date = new Date(isoString); const now = new Date(); const seconds = Math.round((now - date) / 1000); const minutes = Math.round(seconds / 60); const hours = Math.round(minutes / 60); const days = Math.round(hours / 24); if (seconds < 60) return `${seconds}s ago`; if (minutes < 60) return `${minutes}m ago`; if (hours < 24) return `${hours}h ago`; return `${days}d ago`; }
-function renderMissionCard(mission) { let missionClass = '', actionButton = ''; let deadlineText = ''; if (mission.deadline && mission.status === 'Active') { const deadline = new Date(mission.deadline); const now = new Date(); const diff = deadline - now; if (diff > 0) { const hours = Math.floor(diff / 3600000); const minutes = Math.floor((diff % 3600000) / 60000); deadlineText = `<p class="text-xs text-red-400">Due in ${hours}h ${minutes}m</p>`; } } switch (mission.status) { case 'Active': missionClass = mission.type === 'Challenge' ? 'mission-challenge' : 'mission-chore'; actionButton = `<button data-instance-id="${mission.instanceId}" class="btn-mark-complete bg-blue-500 text-white px-4 py-2 rounded-lg btn">Complete</button>`; break; case 'PendingVerification': missionClass = 'mission-pending'; actionButton = `<div class="text-right"><div class="text-red-500 font-semibold">Pending</div><button data-instance-id="${mission.instanceId}" class="btn-unmark-mission text-xs text-gray-400 hover:underline">Undo</button></div>`; break; case 'Completed': missionClass = 'mission-completed'; actionButton = `<div class="font-semibold" style="color: var(--text-color-subtle);">Done!</div>`; break; case 'Failed': missionClass = 'mission-failed'; actionButton = `<div class="font-semibold text-red-300">Failed</div>`; break; } return `<div class="mission-card ${missionClass} p-4 rounded-lg shadow flex justify-between items-center"><div><p class="font-bold mission-description">${mission.description}</p><p class="text-sm" style="color: var(--text-color-subtle);">${mission.points} Points</p>${deadlineText}</div>${actionButton}</div>`; }
-function showModal(title, content, showCloseButton = true) { const modalContainer = document.getElementById('modal-container'); const modal = document.createElement('div'); modal.className = 'modal-backdrop'; modal.innerHTML = `<div class="modal-content"><h2 class="text-2xl font-bold mb-4">${title}</h2><div>${content}</div>${showCloseButton ? '<button class="btn-close-modal mt-6 bg-gray-500 text-white px-4 py-2 rounded-lg btn">Close</button>' : ''}</div>`; modalContainer.appendChild(modal); }
-function closeModal() { document.getElementById('modal-container').innerHTML = ''; }
-function applyTheme() { if (DB.settings.darkMode) { document.documentElement.classList.add('dark'); } else { document.documentElement.classList.remove('dark'); } }
+    addOrSuggestMission(formData) {
+        return this._simulateNetwork(() => {
+            const { description, points, type, targets } = formData;
+            const isSelfAssignedParent = State.currentUser.role === 'Parent' && targets.length === 1 && targets[0] === State.currentUser.id;
+            if (State.currentUser.role === 'Child' || isSelfAssignedParent) {
+                const newSuggestion = { id: `sugg_${Date.now()}`, description, points, targetAudience: targets, type, suggestedBy: State.currentUser.id };
+                this._db.suggestedMissions.push(newSuggestion);
+            } else {
+                targets.forEach(targetId => {
+                    const newMission = { id: `mb_direct_${Date.now()}`, description, points, type, createdBy: State.currentUser.id, targetAudience: [targetId] };
+                    this._db.missionBank.push(newMission);
+                    this._assignMission(newMission.id, targetId);
+                });
+            }
+            return { user: State.currentUser, gameState: this._db };
+        });
+    },
 
-// --- EVENT LISTENERS ---
-function attachEventListeners() {
-    document.body.addEventListener('click', function(event) {
-        const navItem = event.target.closest('.nav-item');
-        if (navItem) {
-            navigateToPage(navItem.dataset.page);
-            return;
-        }
-        if (event.target.matches('.btn-claim-bounty')) { claimBounty(event.target.dataset.missionId); }
-        if (event.target.matches('.btn-mark-complete')) { markMissionComplete(event.target.dataset.instanceId); }
-        if (event.target.matches('.btn-unmark-mission')) { unmarkMission(event.target.dataset.instanceId); }
-        if (event.target.matches('.btn-close-modal')) { closeModal(); }
-        if (event.target.matches('.btn-approve-mission')) { verifyMission(event.target.dataset.instanceId, true); }
-        if (event.target.matches('.btn-deny-mission')) { verifyMission(event.target.dataset.instanceId, false); }
-        if (event.target.matches('.btn-approve-suggestion')) { approveSuggestion(event.target.dataset.suggestionId, true); }
-        if (event.target.matches('.btn-deny-suggestion')) { approveSuggestion(event.target.dataset.suggestionId, false); }
-        if (event.target.matches('#btn-end-game')) { endGame(); }
-        if (event.target.matches('#btn-check-timeouts')) { checkTimeouts(); }
-    });
-    
-    const addSuggestForm = document.getElementById('add-suggest-mission-form');
-    if (addSuggestForm) addSuggestForm.addEventListener('submit', addOrSuggestMission);
+    addToBountyBoard(formData) {
+        return this._simulateNetwork(() => {
+            const { description, points, type, targets } = formData;
+            const newMission = { id: `mb_bounty_${Date.now()}`, description, points, type, createdBy: State.currentUser.id, targetAudience: targets };
+            this._db.missionBank.push(newMission);
+            this._db.bountyBoard.push(newMission);
+            return { user: State.currentUser, gameState: this._db };
+        });
+    },
 
-    const darkModeToggle = document.getElementById('dark-mode-toggle');
-    if (darkModeToggle) {
-        darkModeToggle.addEventListener('change', (e) => {
-            DB.settings.darkMode = e.target.checked;
-            applyTheme();
+    claimBounty(missionId) {
+        return this._simulateNetwork(() => {
+            const missionIndex = this._db.bountyBoard.findIndex(m => m.id === missionId);
+            if (missionIndex === -1) return false;
+            const mission = this._db.bountyBoard.splice(missionIndex, 1)[0];
+            this._assignMission(mission.id, State.currentUser.id);
+            this._topUpBountyBoard();
+            return { user: State.currentUser, gameState: this._db };
+        });
+    },
+
+    approveSuggestion(suggestionId, approvedData) {
+        return this._simulateNetwork(() => {
+            const suggestionIndex = this._db.suggestedMissions.findIndex(s => s.id === suggestionId);
+            if (suggestionIndex === -1) return false;
+            this._db.suggestedMissions.splice(suggestionIndex, 1);
+
+            if (approvedData.action === 'allocate') {
+                const { description, points, type, targets } = approvedData;
+                 targets.forEach(targetId => {
+                    const newMission = { id: `mb_direct_${Date.now()}`, description, points, type, createdBy: State.currentUser.id, targetAudience: [targetId] };
+                    this._db.missionBank.push(newMission);
+                    this._assignMission(newMission.id, targetId);
+                });
+            } else if (approvedData.action === 'bounty') {
+                const { description, points, type, targets } = approvedData;
+                const newMission = { id: `mb_bounty_${Date.now()}`, description, points, type, createdBy: State.currentUser.id, targetAudience: targets };
+                this._db.missionBank.push(newMission);
+                this._db.bountyBoard.push(newMission);
+            }
+            return { user: State.currentUser, gameState: this._db };
         });
     }
-}
+};
 
-// --- INITIALIZE ---
-document.addEventListener('DOMContentLoaded', initializeGame);
 
+const API = MockAPI;
+
+// --- 4. UI RENDERING & LOGIC ---
+const UI = {
+    isInitializing: false,
+    render() {
+        this.isInitializing = true;
+        this.buildPageOrder();
+        this.renderAllPages();
+        this.renderNavigation();
+        this.initSwiper();
+        Events.rebindFormListeners();
+        setTimeout(() => { this.isInitializing = false; }, 0);
+    },
+    renderAllPages() {
+        const track = document.getElementById('page-track');
+        track.innerHTML = State.pageOrder.map(pageId => {
+            let pageContent = '';
+            switch (pageId) {
+                case 'my_missions': pageContent = this.renderMyMissionsPage(); break;
+                case 'verify_missions': pageContent = this.renderVerifyMissionsPage(); break;
+                case 'bounty_board': pageContent = this.renderBountyBoardPage(); break;
+                case 'leaderboard': pageContent = this.renderLeaderboardPage(); break;
+                case 'add_mission': pageContent = this.renderAddMissionPage(); break;
+                case 'admin_panel': pageContent = this.renderAdminPage(); break;
+                case 'settings': pageContent = this.renderSettingsPage(); break;
+                default: pageContent = this.renderPlaceholderPage(pageId); break;
+            }
+            return `<div class="swiper-slide"><div>${pageContent}</div></div>`;
+        }).join('');
+    },
+    renderAddMissionPage() {
+        const isReviewMode = !!State.missionInReview;
+        const mission = State.missionInReview || {};
+
+        const pointsGuidance = `<div class="p-3 rounded-lg text-sm" style="background-color: var(--subtle-bg);"><p class="font-bold">Point Guidelines:</p><ul class="list-disc list-inside"><li><b>5-10 Points:</b> Quick tasks (under 5 mins).</li><li><b>15-25 Points:</b> Standard chores (10-20 mins).</li><li><b>30-50 Points:</b> Big efforts (30+ mins or high importance).</li></ul></div>`;
+        const formTitle = isReviewMode ? 'Review Suggestion' : 'Add or Suggest a Mission';
+
+        let actionButtons;
+        if (isReviewMode && State.currentUser.role === 'Parent') {
+             actionButtons = `
+                <div class="flex gap-2">
+                    <button type="submit" data-action="deny" class="w-full bg-red-500 text-white p-2 rounded-lg btn">Deny</button>
+                    <button type="submit" data-action="allocate" class="w-full bg-gray-500 text-white p-2 rounded-lg btn">Approve & Allocate</button>
+                    <button type="submit" data-action="bounty" class="w-full bg-amber-500 text-white p-2 rounded-lg btn">Approve to Bounty</button>
+                </div>`;
+        } else if (State.currentUser.role === 'Parent') {
+            actionButtons = `
+                <div class="flex gap-2">
+                    <button type="submit" data-action="bounty" class="w-full bg-gray-500 text-white p-2 rounded-lg btn">Add to Bounty Board</button>
+                    <button type="submit" data-action="allocate" class="w-full bg-amber-500 text-white p-2 rounded-lg btn">Allocate Directly</button>
+                </div>`;
+        } else {
+            actionButtons = `<button type="submit" data-action="suggest" class="w-full bg-amber-500 text-white p-2 rounded-lg btn">Suggest Mission</button>`;
+        }
+
+        const typeDropdown = State.currentUser.role === 'Parent' ? `<div><label class="block font-medium">Type</label><select name="type" class="w-full p-2 mt-1"><option value="Chore" ${mission.type === 'Chore' ? 'selected' : ''}>Chore</option><option value="Challenge" ${mission.type === 'Challenge' ? 'selected' : ''}>Challenge</option><option value="Secret" ${mission.type === 'Secret' ? 'selected' : ''}>Secret</option></select></div>` : '';
+
+        return `
+            <div class="p-6 rounded-lg shadow-lg" style="background-color: var(--card-bg);">
+                <h2 class="font-bangers text-4xl text-center mb-4" style="color: var(--header-color);">${formTitle}</h2>
+                <form id="add-suggest-mission-form" class="space-y-4">
+                    ${isReviewMode ? `<p class="text-sm text-center">Suggested by: <span class="font-bold">${State.db.users.find(u=>u.id === mission.suggestedBy)?.name || 'Unknown'}</span></p>` : ''}
+                    ${pointsGuidance}
+                    <div><label class="block font-medium">Description</label><textarea name="description" rows="3" placeholder="E.g., Get someone to hum a song" class="w-full p-2 mt-1">${mission.description || ''}</textarea></div>
+                    <div><label class="block font-medium">Points</label><input type="number" name="points" value="${mission.points || 1}" class="w-full p-2 mt-1"></div>
+                    ${typeDropdown}
+                    <div>
+                        <label class="block font-medium">Available to</label>
+                        <div class="flex flex-wrap gap-2 my-2">
+                            <button type="button" class="btn-shortcut text-xs px-3 py-1 rounded-full bg-blue-100 text-blue-800" data-group="everyone">Everyone</button>
+                            <button type="button" class="btn-shortcut text-xs px-3 py-1 rounded-full bg-green-100 text-green-800" data-group="Child">Children</button>
+                            <button type="button" class="btn-shortcut text-xs px-3 py-1 rounded-full bg-yellow-100 text-yellow-800" data-group="Parent">Parents</button>
+                            <button type="button" class="btn-shortcut text-xs px-3 py-1 rounded-full bg-gray-100 text-gray-800" data-group="clear">Clear</button>
+                        </div>
+                        <div id="assign-to-container" class="relative">
+                            <div id="assign-to-pills" class="flex flex-wrap gap-2 p-2 border rounded-md cursor-pointer min-h-[42px]" style="border-color: var(--border-color);"><span class="placeholder text-gray-400">Select people...</span></div>
+                            <div id="assign-to-dropdown" class="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border dark:border-gray-600 rounded-md shadow-lg hidden"></div>
+                        </div>
+                    </div>
+                    ${actionButtons}
+                </form>
+            </div>`;
+    },
+    renderVerifyMissionsPage() {
+        const missionsToVerify = State.db.activeMissions.filter(m => {
+            if (m.status !== 'PendingVerification' || m.assignedTo === State.currentUser.id) return false;
+            if (m.type === 'Secret' && State.currentUser.role === 'Child') return false;
+            return true;
+        });
+        return `<div class="p-6 rounded-lg shadow-lg" style="background-color: var(--card-bg);"><h2 class="font-bangers text-4xl text-center mb-4" style="color: var(--header-color);">Verify Missions</h2>${missionsToVerify.length > 0 ? `<div class="space-y-3">${missionsToVerify.map(m => `<div class="p-4 rounded-lg shadow" style="background-color: var(--subtle-bg);"><p><span class="font-bold">${State.db.users.find(u=>u.id===m.assignedTo).name}</span> completed:</p><p class="my-2 text-lg font-semibold">"${m.description}"</p><div class="flex justify-end space-x-2"><button data-instance-id="${m.instanceId}" class="btn-deny-mission bg-red-500 text-white px-3 py-1 rounded btn">Deny</button><button data-instance-id="${m.instanceId}" class="btn-approve-mission bg-green-500 text-white px-3 py-1 rounded btn">Approve</button></div></div>`).join('')}</div>` : `<p class="text-center">No missions are waiting for verification right now.</p>`}</div>`;
+    },
+    renderBountyBoardPage() {
+        const user = State.currentUser;
+        const eligibleBounties = State.db.bountyBoard.filter(m =>
+            m.targetAudience.includes('Everyone') ||
+            m.targetAudience.includes(user.role) ||
+            m.targetAudience.includes(user.id)
+        );
+        return `<div class="p-6 bg-green-800 rounded-lg shadow-lg" style="background-image: url('https://www.transparenttextures.com/patterns/wood-pattern.png');"><h2 class="font-bangers text-4xl text-center mb-4 text-white">Bounty Board</h2>${eligibleBounties.length > 0 ? `<div class="space-y-3">${eligibleBounties.map(m => `<div class="mission-card mission-bounty p-4 rounded-lg shadow flex justify-between items-center !bg-white !text-gray-800"><div><p class="font-bold">${m.description}</p><p class="text-sm text-green-600 font-semibold">${m.points} Points</p></div><button data-mission-id="${m.id}" class="btn-claim-bounty bg-green-500 text-white px-4 py-2 rounded-lg btn">Claim!</button></div>`).join('')}</div>` : `<div class="text-center text-white p-6"><p>The Bounty Board is empty. Check back later!</p></div>`}</div>`;
+    },
+    renderAdminPage() {
+        const suggestedMissions = State.db.suggestedMissions;
+        return `<div class="p-6 rounded-lg shadow-inner" style="background-color: var(--subtle-bg);">
+            <h2 class="font-bangers text-4xl text-center text-slate-700">Approve Missions</h2>
+            ${suggestedMissions.length > 0 ?
+                `<div class="space-y-4 mt-4">${suggestedMissions.map(s => `
+                    <div class="p-4 rounded-lg shadow space-y-3" style="background-color: var(--card-bg);">
+                        <p class="text-sm">Suggested by: <span class="font-bold">${State.db.users.find(u=>u.id===s.suggestedBy).name}</span></p>
+                        <p class="font-semibold">"${s.description}"</p>
+                        <div class="flex justify-end">
+                            <button type="button" data-suggestion-id="${s.id}" class="btn-review-suggestion bg-blue-500 text-white px-3 py-1 rounded btn">Review</button>
+                        </div>
+                    </div>`).join('')}
+                </div>` :
+                `<p class="text-center mt-4">No missions are waiting for approval.</p>`
+            }
+        </div>`;
+    },
+    renderNavigation() {
+        const nav = document.getElementById('app-nav');
+        nav.innerHTML = State.pageOrder.map(pageId => {
+            const item = { id: pageId, label: pageId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), icon: ICONS[pageId] };
+            if (item.label === 'My Missions') item.label = 'Missions';
+            if (item.label === 'Admin Panel') item.label = 'Approve';
+            let badge = '';
+            if (item.id === 'verify_missions') {
+                const pendingCount = State.db.activeMissions.filter(q => q.status === 'PendingVerification' && q.assignedTo !== State.currentUser.id).length;
+                if (pendingCount > 0) badge = `<span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">${pendingCount}</span>`;
+            }
+            return `<div data-page="${item.id}" class="nav-item flex flex-col items-center justify-center w-16 h-16 rounded-lg ${State.currentPage === item.id ? 'active' : ''}" title="${item.label}"><div class="relative">${item.icon}${badge}</div><span class="text-xs mt-1">${item.label}</span></div>`
+        }).join('');
+    },
+    buildPageOrder() {
+        let order = ['my_missions', 'verify_missions', 'bounty_board', 'leaderboard', 'add_mission'];
+        if (State.currentUser.role === 'Parent') order.push('admin_panel');
+        order.push('settings');
+        State.pageOrder = order;
+    },
+    initSwiper() {
+        if (State.swiper) State.swiper.destroy(true, true);
+        const initialSlideIndex = State.pageOrder.indexOf(State.currentPage);
+        State.swiper = new Swiper('#app-main', {
+            initialSlide: initialSlideIndex > -1 ? initialSlideIndex : 0,
+            mousewheel: { forceToAxis: true },
+            on: {
+                slideChange: () => {
+                    if (UI.isInitializing) return;
+
+                    const newActiveIndex = State.swiper.activeIndex;
+                    const isSwipingAwayFromReview = State.missionInReview && State.pageOrder[newActiveIndex] !== 'add_mission';
+
+                    if (isSwipingAwayFromReview) {
+                        State.missionInReview = null;
+                        UI.render(); 
+                    } else {
+                        const newPageId = State.pageOrder[newActiveIndex];
+                        if (newPageId) {
+                            State.currentPage = newPageId;
+                            UI.renderNavigation();
+                        }
+                    }
+                },
+                slideChangeTransitionStart: () => { State.swiper.allowTouchMove = false; },
+                slideChangeTransitionEnd: () => { State.swiper.allowTouchMove = true; },
+            },
+        });
+    },
+    navigateToPage(pageId) {
+        if (State.missionInReview && pageId !== 'add_mission') {
+            State.missionInReview = null;
+        }
+        State.currentPage = pageId;
+        this.render();
+    },
+    slideToPage(pageId, animate = true) {
+        if (State.missionInReview && pageId !== 'add_mission') {
+            State.missionInReview = null;
+            this.render();
+            return;
+        }
+        State.currentPage = pageId;
+        this.renderNavigation();
+        const pageIndex = State.pageOrder.indexOf(pageId);
+        if (State.swiper && pageIndex !== -1 && pageIndex < State.swiper.slides.length) {
+            State.swiper.slideTo(pageIndex, animate ? 300 : 0);
+        }
+    },
+    showModal(title, content) {
+        const modalContainer = document.getElementById('modal-container');
+        const modal = document.createElement('div');
+        modal.className = 'modal-backdrop';
+        modal.innerHTML = `<div class="modal-content"><h2 class="text-2xl font-bold mb-4">${title}</h2><div>${content}</div><button class="btn-close-modal mt-6 bg-gray-500 text-white px-4 py-2 rounded-lg btn">Close</button></div>`;
+        modalContainer.appendChild(modal);
+    },
+    closeModal() { document.getElementById('modal-container').innerHTML = ''; },
+    playBountyClaimAnimation(startElement) {
+        const startRect = startElement.getBoundingClientRect();
+        const endElement = document.querySelector('.nav-item[data-page="my_missions"]');
+        if (!endElement) return;
+        const endRect = endElement.getBoundingClientRect();
+
+        const particleCount = 5;
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.style.position = 'fixed';
+            particle.style.left = `${startRect.left + startRect.width / 2}px`;
+            particle.style.top = `${startRect.top + startRect.height / 2}px`;
+            particle.style.width = '8px';
+            particle.style.height = '8px';
+            particle.style.backgroundColor = '#f59e0b'; // Amber color
+            particle.style.borderRadius = '50%';
+            particle.style.zIndex = '100';
+            particle.style.transition = 'all 0.5s cubic-bezier(0.5, -0.5, 0.5, 1.5)';
+            document.body.appendChild(particle);
+
+            setTimeout(() => {
+                const randomX = (Math.random() - 0.5) * 50;
+                const randomY = (Math.random() - 0.5) * 50;
+                particle.style.left = `${endRect.left + endRect.width / 2 + randomX}px`;
+                particle.style.top = `${endRect.top + endRect.height / 2 + randomY}px`;
+                particle.style.transform = 'scale(0)';
+                particle.style.opacity = '0';
+            }, 50 + i * 20);
+
+            setTimeout(() => {
+                particle.remove();
+            }, 600 + i * 20);
+        }
+    },
+    renderPlaceholderPage(pageId) { return `<div class="p-6">Content for ${pageId}</div>`; },
+    renderMyMissionsPage() { const myMissions = State.db.activeMissions.filter(m => m.assignedTo === State.currentUser.id); const myNotifications = State.db.notifications.filter(n => n.userId === State.currentUser.id && !n.read); const statusOrder = { 'Active': 1, 'PendingVerification': 2, 'Completed': 3, 'Failed': 4 }; myMissions.sort((a, b) => { const statusDiff = statusOrder[a.status] - statusOrder[b.status]; if (statusDiff !== 0) return statusDiff; return b.points - a.points; }); return `${myNotifications.length > 0 ? `<div class="mb-6 bg-blue-500 bg-opacity-20 border-l-4 border-blue-500 text-blue-300 p-4 rounded-r-lg" role="alert"><p class="font-bold">Notifications</p><ul class="list-disc list-inside">${myNotifications.map(n => `<li>${n.message}</li>`).join('')}</ul></div>` : ''}<div><h2 class="font-bangers text-4xl text-center mb-4 text-blue-400">My Missions (${myMissions.filter(m=>m.status === 'Active' || m.status === 'PendingVerification').length})</h2>${myMissions.length > 0 ? `<div class="space-y-3">${myMissions.map(m => this.renderMissionCard(m)).join('')}</div>` : `<div class="text-center p-6 rounded-lg shadow" style="background-color: var(--card-bg);"><p>You have no active missions. Go to the Bounty Board to claim one!</p></div>`}</div>`; },
+    renderLeaderboardPage() { const sortedUsers = [...State.db.users].sort((a, b) => b.weeklyScore - a.weeklyScore); const podiumColors = ['bg-amber-400', 'bg-slate-400', 'bg-orange-400']; return `<div class="mb-8"><h2 class="font-bangers text-4xl text-center mb-4 text-blue-400">Weekly Leaderboard</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">${sortedUsers.slice(0, 3).map((user, index) => `<div class="${podiumColors[index]} p-4 rounded-lg shadow-lg text-white"><div class="font-bold text-2xl">${index + 1}</div><div class="text-xl font-semibold">${user.name}</div><div class="text-3xl font-bold">${user.weeklyScore} pts</div></div>`).join('')}</div><div class="mt-4 p-3 rounded-lg shadow" style="background-color: var(--card-bg);">${sortedUsers.slice(3).map((user, index) => `<div class="flex justify-between items-center p-2 border-b" style="border-color: var(--border-color);"><span class="font-semibold">${index + 4}. ${user.name}</span><span class="font-bold">${user.weeklyScore} pts</span></div>`).join('')}</div>${this.renderMissionLogSummary()}<div class="text-center mt-8"><button id="btn-end-game" class="bg-red-600 text-white font-bold px-8 py-4 rounded-lg shadow-xl btn">See Report</button></div></div>`; },
+    renderMissionBankPage() { return `<div class="p-6 rounded-lg shadow-lg" style="background-color: var(--card-bg);"><h2 class="font-bangers text-4xl text-center mb-4" style="color: var(--header-color);">Mission Bank</h2><p class="text-center mb-4">A list of all possible missions in the game.</p><div class="space-y-3">${State.db.missionBank.map(m => `<div class="p-4 rounded-lg" style="background-color: var(--subtle-bg);"><p class="font-bold">${m.description}</p><p class="text-sm"><b>Points:</b> ${m.points} | <b>Type:</b> ${m.type} | <b>For:</b> ${m.targetAudience.join(', ')}</p></div>`).join('')}</div></div>`; },
+    renderSettingsPage() { return `<div class="p-6 rounded-lg shadow-lg" style="background-color: var(--card-bg);"><h2 class="font-bangers text-4xl text-center mb-4" style="color: var(--header-color);">Settings</h2><div class="space-y-4"> <div class="flex items-center justify-between"><label for="dark-mode-toggle" class="font-medium">Dark Mode</label><div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in"><input type="checkbox" name="dark-mode-toggle" id="dark-mode-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" ${State.db.settings.darkMode ? 'checked' : ''}/><label for="dark-mode-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label></div></div> <div class="border-t pt-4" style="border-color: var(--border-color);"><button id="btn-check-timeouts" class="w-full bg-yellow-500 text-white p-2 rounded-lg btn">Check for Timed-Out Missions</button></div> </div> <style>.toggle-checkbox:checked { right: 0; border-color: #60a5fa; } .toggle-checkbox:checked + .toggle-label { background-color: #60a5fa; }</style></div>`; },
+    renderMissionLogSummary() { const closedMissions = State.db.activeMissions.filter(m => m.status !== 'Active').sort((a, b) => new Date(b.statusTimestamp) - new Date(a.statusTimestamp)); if (closedMissions.length === 0) return ''; const statusStyles = { Completed: 'text-gray-500', PendingVerification: 'text-green-500', Failed: 'text-red-800 dark:text-red-400' }; return `<div class="mt-8"><details class="p-4 rounded-lg shadow-inner" style="background-color: var(--subtle-bg);"><summary class="font-bold text-lg flex justify-between items-center"><span>Mission Log</span><svg class="arrow w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg></summary><div class="mt-4 space-y-3">${closedMissions.map(m => { const user = State.db.users.find(u => u.id === m.assignedTo); const timeAgo = this.formatTimeAgo(m.statusTimestamp); let description = m.description; if (m.type === 'Secret' && State.currentUser.role === 'Child' && m.assignedTo !== State.currentUser.id) { description = 'Secret Mission'; } return `<div class="text-sm p-3 rounded-md" style="background-color: var(--card-bg);"><p class="font-semibold">"${description}"</p><p>Assigned to: <span class="font-bold">${user ? user.name : 'Unknown'}</span></p><p>Status: <span class="font-bold ${statusStyles[m.status] || ''}">${m.status.replace(/([A-Z])/g, ' $1').trim()}</span> (${timeAgo})</p></div>`; }).join('')}</div></details></div>`; },
+    formatTimeAgo(isoString) { const date = new Date(isoString); const now = new Date(); const seconds = Math.round((now - date) / 1000); const minutes = Math.round(seconds / 60); const hours = Math.round(minutes / 60); const days = Math.round(hours / 24); if (seconds < 60) return `${seconds}s ago`; if (minutes < 60) return `${minutes}m ago`; if (hours < 24) return `${hours}h ago`; return `${days}d ago`; },
+    renderMissionCard(mission) {
+        let missionClass = '', actionButton = '', deadlineText = '';
+        switch (mission.type) {
+            case 'Challenge': missionClass = 'mission-challenge'; break;
+            case 'Secret': missionClass = 'mission-secret'; break;
+            default: missionClass = 'mission-chore'; break;
+        }
+        if (mission.deadline && mission.status === 'Active') { const deadline = new Date(mission.deadline); const now = new Date(); const diff = deadline - now; if (diff > 0) { const hours = Math.floor(diff / 3600000); const minutes = Math.floor((diff % 3600000) / 60000); deadlineText = `<p class="text-xs text-red-400">Due in ${hours}h ${minutes}m</p>`; } }
+        let description = mission.description;
+        if (mission.type === 'Secret' && State.currentUser.role === 'Child' && mission.assignedTo !== State.currentUser.id) {
+            description = 'Secret Mission';
+        }
+        switch (mission.status) {
+            case 'Active': actionButton = `<button data-instance-id="${mission.instanceId}" class="btn-mark-complete bg-blue-500 text-white px-4 py-2 rounded-lg btn">Complete</button>`; break;
+            case 'PendingVerification': missionClass = 'mission-pending'; actionButton = `<div class="text-right"><div class="text-green-500 font-semibold">Pending</div><button data-instance-id="${mission.instanceId}" class="btn-unmark-mission text-xs text-gray-400 hover:underline">Undo</button></div>`; break;
+            case 'Completed': missionClass = 'mission-completed'; actionButton = `<div class="font-semibold" style="color: var(--text-color-subtle);">Done!</div>`; break;
+            case 'Failed': missionClass = 'mission-failed'; actionButton = `<div class="font-semibold text-red-300">Failed</div>`; break;
+        }
+        return `<div class="mission-card ${missionClass} p-4 rounded-lg shadow flex justify-between items-center"><div><p class="font-bold mission-description">${description}</p><p class="text-sm" style="color: var(--text-color-subtle);">${mission.points} Points</p>${deadlineText}</div>${actionButton}</div>`;
+    },
+};
+
+// --- 5. EVENT HANDLING ---
+const Events = {
+    init() {
+        document.body.addEventListener('click', this.handleBodyClick.bind(this));
+        const userSwitcher = document.getElementById('user-switcher');
+        userSwitcher.innerHTML = State.db.users.map(u => `<option value="${u.id}">Viewing as: ${u.name} (${u.role})</option>`).join('');
+        userSwitcher.value = State.currentUser.id;
+        userSwitcher.addEventListener('change', this.handleUserSwitch.bind(this));
+    },
+    rebindFormListeners() {
+        const form = document.getElementById('add-suggest-mission-form');
+        if (form) {
+            form.addEventListener('submit', this.handleAddMissionSubmit.bind(this));
+            const typeSelector = form.querySelector('select[name="type"]');
+            if (typeSelector) {
+                typeSelector.addEventListener('change', this.handleTypeChange.bind(this));
+            }
+            if (State.missionInReview) {
+                const mission = State.missionInReview;
+                form.elements.description.value = mission.description || '';
+                form.elements.points.value = mission.points || 1;
+                if (form.elements.type) {
+                    form.elements.type.value = mission.type || 'Chore';
+                }
+            }
+        }
+        const assignToPills = document.getElementById('assign-to-pills');
+        if (assignToPills) {
+            assignToPills.addEventListener('click', this.handleAssignToClick.bind(this));
+            if (State.missionInReview) {
+                State.missionInReview.targetAudience.forEach(userId => {
+                    const user = State.db.users.find(u => u.id === userId);
+                    if (user) this.addAssignToPill(user.id, user.name);
+                });
+                this.updateAssignToUI();
+            }
+        }
+    },
+    async handleBodyClick(event) {
+        const target = event.target;
+        const navItem = target.closest('.nav-item');
+        if (navItem) { UI.slideToPage(navItem.dataset.page); return; }
+        if (target.matches('.btn-close-modal')) { UI.closeModal(); return; }
+        
+        let response;
+
+        if (target.matches('.btn-mark-complete')) {
+            const instanceId = target.dataset.instanceId;
+            response = await API.markMissionComplete(instanceId);
+            if (response) {
+                State.loadData(response.user, response.gameState);
+                confetti();
+                UI.showModal("Mission Submitted!", "Another family member will need to verify this from the 'Verify Missions' page.");
+                UI.render();
+            }
+        }
+        if (target.matches('.btn-approve-mission')) {
+            const instanceId = target.dataset.instanceId;
+            response = await API.verifyMission(instanceId, true);
+            if (response) {
+                State.loadData(response.user, response.gameState);
+                confetti();
+                UI.showModal("Mission Approved!", "Points have been awarded!");
+                UI.render();
+            }
+        }
+        if (target.matches('#btn-end-game')) {
+            const winner = [...State.db.users].sort((a, b) => b.weeklyScore - a.weeklyScore)[0];
+            let report = `<div class="text-center"><h2 class="text-3xl font-bold mb-4">Weekly Report</h2><div class="bg-amber-100 p-6 rounded-lg text-gray-800"><p class="text-xl">This week's champion is...</p><p class="font-bangers text-5xl text-amber-600 my-4">${winner.name}!</p><p class="text-lg">with a score of ${winner.weeklyScore} points!</p></div><h3 class="text-2xl font-bold mt-8 mb-4">Verification Log</h3><ul class="text-left p-4 rounded-lg text-sm space-y-2" style="background-color: var(--subtle-bg);">${State.db.verificationLog.length > 0 ? State.db.verificationLog.map(log => `<li>📜 ${log}</li>`).join('') : '<li>No missions were verified this week.</li>'}</ul></div>`;
+            UI.showModal("Game Over!", report);
+        }
+        if (target.matches('.btn-shortcut')) this.handleShortcutClick(target.dataset.group);
+        if (target.matches('.assign-to-option')) this.addAssignToPill(target.dataset.userId, target.textContent);
+        if (target.matches('.remove-pill')) {
+            target.parentElement.remove();
+            this.updateAssignToUI();
+        }
+        if (target.matches('.btn-claim-bounty')) {
+            const missionId = target.dataset.missionId;
+            response = await API.claimBounty(missionId);
+            if (response) {
+                UI.playBountyClaimAnimation(target);
+                State.loadData(response.user, response.gameState);
+                UI.showModal("Bounty Claimed!", "A new mission has been added to your list.");
+                UI.render();
+            }
+        }
+        if (target.matches('.btn-review-suggestion')) {
+            const suggestionId = target.dataset.suggestionId;
+            const suggestion = State.db.suggestedMissions.find(s => s.id === suggestionId);
+            if (suggestion) {
+                State.missionInReview = suggestion;
+                State.currentPage = 'add_mission';
+                UI.render();
+            }
+        }
+    },
+    async handleUserSwitch(event) {
+        const newUserId = event.target.value;
+        const { user, gameState } = await API.login(newUserId);
+        State.loadData(user, gameState);
+        UI.render();
+    },
+    async handleAddMissionSubmit(event) {
+        event.preventDefault();
+        const form = event.target;
+        const description = form.elements.description.value.trim();
+        const points = form.elements.points.value;
+        const targets = Array.from(document.querySelectorAll('.assign-to-pill')).map(pill => pill.dataset.userId);
+        if (!description) { UI.showModal("Incomplete Form", "Please enter a mission description."); return; }
+        if (!points || parseInt(points) <= 0) { UI.showModal("Incomplete Form", "Please enter a valid point value greater than zero."); return; }
+        if (targets.length === 0) { UI.showModal("Incomplete Form", "Please select at least one person to assign this mission to."); return; }
+        const data = { description, points: parseInt(points), type: form.elements.type ? form.elements.type.value : 'Challenge', targets };
+
+        const action = event.submitter.dataset.action;
+        let response;
+
+        if (State.missionInReview) {
+            response = await API.approveSuggestion(State.missionInReview.id, { ...data, action });
+            State.missionInReview = null;
+        } else {
+            if (action === 'allocate' || action === 'suggest') {
+                response = await API.addOrSuggestMission(data);
+            } else if (action === 'bounty') {
+                response = await API.addToBountyBoard(data);
+            }
+        }
+        
+        if (response) {
+            State.loadData(response.user, response.gameState);
+        }
+
+        form.reset();
+        UI.navigateToPage('my_missions');
+    },
+    handleShortcutClick(group) {
+        const pillsContainer = document.getElementById('assign-to-pills');
+        pillsContainer.innerHTML = '<span class="placeholder text-gray-400 hidden">Select people...</span>'; // Reset with placeholder
+        if (group !== 'clear') {
+            const usersToSelect = State.db.users.filter(u => group === 'everyone' || u.role === group);
+            usersToSelect.forEach(u => this.addAssignToPill(u.id, u.name));
+        }
+        this.updateAssignToUI();
+    },
+    handleAssignToClick(event) {
+        const dropdown = document.getElementById('assign-to-dropdown');
+        dropdown.classList.toggle('hidden');
+        if (!dropdown.classList.contains('hidden')) {
+            this.updateAssignToUI();
+        }
+    },
+    handleTypeChange(event) {
+        if (event.target.value === 'Challenge') {
+            this.handleShortcutClick('everyone');
+        }
+    },
+    addAssignToPill(userId, name) {
+        if (document.querySelector(`.assign-to-pill[data-user-id="${userId}"]`)) return;
+        const pillsContainer = document.getElementById('assign-to-pills');
+        const pill = document.createElement('span');
+        pill.className = 'assign-to-pill flex items-center bg-blue-500 text-white text-sm font-medium px-2 py-1 rounded-full';
+        pill.dataset.userId = userId;
+        pill.innerHTML = `<span>${name}</span><button type="button" class="remove-pill ml-2 text-white hover:text-gray-200">&times;</button>`;
+        pillsContainer.appendChild(pill);
+    },
+    updateAssignToUI() {
+        const pillsContainer = document.getElementById('assign-to-pills');
+        const dropdown = document.getElementById('assign-to-dropdown');
+        const placeholder = pillsContainer.querySelector('.placeholder');
+        const selectedIds = Array.from(pillsContainer.querySelectorAll('.assign-to-pill')).map(p => p.dataset.userId);
+        if (selectedIds.length > 0) {
+            if(placeholder) placeholder.classList.add('hidden');
+        } else {
+            if(placeholder) placeholder.classList.remove('hidden');
+        }
+        const availableUsers = State.db.users.filter(u => !selectedIds.includes(u.id));
+        dropdown.innerHTML = availableUsers.map(u => `<a href="#" class="assign-to-option block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700" data-user-id="${u.id}">${u.name}</a>`).join('');
+    }
+};
+
+// --- 6. APP INITIALIZATION ---
+document.addEventListener('DOMContentLoaded', async () => {
+    const setAppHeight = () => {
+        document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+    };
+    window.addEventListener('resize', setAppHeight);
+    setAppHeight();
+
+    const { user, gameState } = await API.login('dad');
+    State.loadData(user, gameState);
+
+    UI.render();
+    Events.init();
+});
 </script>
 
 </body>
 </html>
-
