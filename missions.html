@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Family Quest v1.16 (Swipe Fixed)</title>
+    <title>Family Quest v1.17 (Mobile Fix)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Bangers&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
@@ -51,7 +51,8 @@
         #app-shell {
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            /* CHANGE: Use a CSS variable for height, set by JS. This fixes mobile browser viewport issues. */
+            height: var(--app-height, 100vh);
             max-width: 42rem;
             margin: 0 auto;
         }
@@ -278,7 +279,16 @@ const ICONS = {
 
 
 // --- CORE LOGIC ---
+// CHANGE: Added function to handle viewport height on mobile
+function setAppHeight() {
+    const doc = document.documentElement;
+    doc.style.setProperty('--app-height', `${window.innerHeight}px`);
+}
+
 function initializeGame() {
+    setAppHeight(); // Set initial height
+    window.addEventListener('resize', setAppHeight); // Adjust on resize
+
     applyTheme();
     const userSwitcher = document.getElementById('user-switcher');
     userSwitcher.innerHTML = DB.users.map(u => `<option value="${u.id}">Viewing as: ${u.name} (${u.role})</option>`).join('');
@@ -452,7 +462,6 @@ function initSwiper() {
     if (swiper) {
         swiper.destroy(true, true);
     }
-    // CHANGE: Added event handlers to prevent multi-page swipes
     swiper = new Swiper('#app-main', {
         mousewheel: {
             forceToAxis: true,
@@ -465,11 +474,9 @@ function initSwiper() {
                     renderNavigation();
                 }
             },
-            // When the slide animation starts, disable user interaction
             slideChangeTransitionStart: function () {
                 this.allowTouchMove = false;
             },
-            // When the slide animation ends, re-enable user interaction
             slideChangeTransitionEnd: function () {
                 this.allowTouchMove = true;
             },
@@ -483,7 +490,8 @@ function addNotification(userId, message) { DB.notifications.push({ id: `notif_$
 function getMissionFromBank(id) { return JSON.parse(JSON.stringify(DB.missionBank.find(m => m.id === id))); }
 function assignMission(missionId, userId) { const mission = getMissionFromBank(missionId); if (!mission) return; const newMissionInstance = { ...mission, instanceId: `mi_${Date.now()}_${Math.random()}`, assignedTo: userId, status: 'Active', statusTimestamp: new Date().toISOString() }; DB.activeMissions.push(newMissionInstance); }
 function claimBounty(missionId) { const userMissions = DB.activeMissions.filter(m => m.assignedTo === currentUser.id && m.status !== 'Completed'); if (userMissions.length >= 10) { showModal("Too Many Missions!", "You must complete some missions before claiming new ones. Max 10 active missions."); return; } const missionIndex = DB.bountyBoard.findIndex(m => m.id === missionId); if (missionIndex > -1) { const mission = DB.bountyBoard[missionIndex]; DB.bountyBoard.splice(missionIndex, 1); const newMissionInstance = { ...mission, instanceId: `mi_${Date.now()}_${Math.random()}`, assignedTo: currentUser.id, status: 'Active', statusTimestamp: new Date().toISOString() }; DB.activeMissions.push(newMissionInstance); addNotification(currentUser.id, `You have claimed the bounty: "${mission.description}"!`); buildAndNavigate(currentPage); } }
-function markMissionComplete(instanceId) { const mission = DB.activeMissions.find(m => m.instanceId === instanceId); if (!mission) return; mission.status = 'PendingVerification'; mission.statusTimestamp = new Date().toISOString(); showModal("Mission Submitted!", "Another family member will need to verify this mission from the 'Verify Missions' page."); buildAndNavigate(currentPage); }
+// CHANGE: Added confetti() to this function
+function markMissionComplete(instanceId) { const mission = DB.activeMissions.find(m => m.instanceId === instanceId); if (!mission) return; confetti(); mission.status = 'PendingVerification'; mission.statusTimestamp = new Date().toISOString(); showModal("Mission Submitted!", "Another family member will need to verify this mission from the 'Verify Missions' page."); buildAndNavigate(currentPage); }
 function unmarkMission(instanceId) { const mission = DB.activeMissions.find(m => m.instanceId === instanceId); if (mission && mission.status === 'PendingVerification') { mission.status = 'Active'; mission.statusTimestamp = new Date().toISOString(); buildAndNavigate(currentPage); } }
 function verifyMission(instanceId, isApproved) { const mission = DB.activeMissions.find(m => m.instanceId === instanceId); if (!mission) return; const user = DB.users.find(u => u.id === mission.assignedTo); if (isApproved) { mission.status = 'Completed'; user.weeklyScore += mission.points; user.allTimeScore += mission.points; DB.verificationLog.push(`${currentUser.name} approved '${mission.description}' for ${user.name}.`); addNotification(user.id, `Your mission "${mission.description}" was approved by ${currentUser.name}! You earned ${mission.points} points.`); confetti(); showModal("Mission Approved!", `${user.name} earned ${mission.points} points!`); } else { mission.status = 'Active'; addNotification(user.id, `Your mission "${mission.description}" was denied by ${currentUser.name} and is back on your list.`); showModal("Mission Denied", "The mission has been returned to the user's active list."); } mission.statusTimestamp = new Date().toISOString(); buildAndNavigate(currentPage); }
 function addOrSuggestMission(event) { event.preventDefault(); const form = event.target; const description = form.elements.description.value; const points = parseInt(form.elements.points.value); const targetId = form.elements.target.value; const type = form.elements.type ? form.elements.type.value : 'Challenge'; const isSelfAssignedParent = currentUser.role === 'Parent' && targetId === currentUser.id; if (!description || !points) { showModal("Incomplete Form", "Please fill out the description and points."); return; } if (currentUser.role === 'Child' || isSelfAssignedParent) { const newSuggestion = { id: `sugg_${Date.now()}`, description, points, targetAudience: [targetId || 'Everyone'], type, suggestedBy: currentUser.id }; DB.suggestedMissions.push(newSuggestion); showModal("Suggestion Sent!", "A parent will review your new mission idea. Thanks!"); } else { if (!targetId) { showModal("Incomplete Form", "Please select who to assign this mission to."); return; } const newMission = { id: `mb_direct_${Date.now()}`, description, points, type, targetAudience: [targetId] }; DB.missionBank.push(newMission); assignMission(newMission.id, targetId); addNotification(targetId, `You have been assigned a new mission: "${description}".`); showModal("Mission Assigned!", `A new mission has been assigned to ${DB.users.find(u=>u.id === targetId).name}.`); } form.reset(); buildAndNavigate(currentPage); }
@@ -547,3 +555,4 @@ document.addEventListener('DOMContentLoaded', initializeGame);
 
 </body>
 </html>
+
