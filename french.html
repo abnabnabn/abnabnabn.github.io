@@ -10,42 +10,48 @@
         
         body {
             font-family: 'Inter', sans-serif;
-            touch-action: manipulation; /* Improves touch response */
+            touch-action: manipulation;
         }
 
-        /* Flip Animation */
-        .flip-card {
-            transition: transform 0.6s;
-            transform-style: preserve-3d;
+        /* FLIP ANIMATION */
+        .flip {
+            animation: flip 0.6s ease-in forwards;
         }
-        .flip-in {
-            animation: flipIn 0.5s ease-in forwards;
-        }
-        
-        @keyframes flipIn {
+        @keyframes flip {
             0% { transform: rotateX(0); }
-            50% { transform: rotateX(-90deg); }
+            45% { transform: rotateX(90deg); }
+            55% { transform: rotateX(90deg); }
             100% { transform: rotateX(0); }
         }
 
-        /* Shake Animation for errors */
+        /* POP ANIMATION */
+        .pop {
+            animation: pop 0.1s linear;
+        }
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* SHAKE ANIMATION */
         .shake {
             animation: shake 0.5s;
         }
-        
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
             10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
             20%, 40%, 60%, 80% { transform: translateX(4px); }
         }
 
-        /* Custom Scrollbar for the grid container */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Blur class for hidden clue */
+        .blur-text {
+            filter: blur(4px);
+            user-select: none;
+            opacity: 0.5;
         }
     </style>
 </head>
@@ -54,12 +60,11 @@
     <!-- HEADER -->
     <header class="w-full bg-indigo-600 text-white p-2 md:p-4 shadow-md flex justify-between items-center z-10 shrink-0">
         <div class="flex items-center gap-2">
-            <!-- Icon: Book/Cross -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="md:w-6 md:h-6"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-            <h1 class="text-base md:text-2xl font-bold tracking-wider">LE MOT-CROSS</h1>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 md:w-6 md:h-6"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            <h1 class="text-lg md:text-2xl font-bold tracking-wider">LE MOT-CROSS</h1>
         </div>
         <button id="restartBtn" class="p-2 hover:bg-indigo-700 rounded-full transition-colors" title="New Game">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="md:w-5 md:h-5"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
         </button>
     </header>
 
@@ -67,23 +72,23 @@
     <main class="flex-1 w-full max-w-2xl p-2 flex flex-col items-center relative overflow-hidden min-h-0">
         
         <!-- CLUE BOX -->
-        <div class="w-full max-w-lg bg-white p-2 md:p-4 rounded-lg shadow-sm border border-slate-200 mb-2 text-center relative overflow-hidden shrink-0">
+        <div class="w-full max-w-lg bg-white p-3 md:p-4 rounded-lg shadow-sm border border-slate-200 mb-2 text-center relative overflow-hidden shrink-0">
             <div id="lengthBadge" class="absolute top-0 right-0 bg-indigo-100 text-indigo-700 text-[10px] md:text-xs font-bold px-2 py-1 rounded-bl">
                 5 Letters
             </div>
             <span class="block text-[10px] md:text-xs uppercase text-slate-400 font-bold mb-1">English Clue</span>
-            <h2 id="clueText" class="text-base md:text-2xl font-bold text-indigo-900 break-words leading-tight">
-                Loading...
+            <h2 id="clueText" class="text-lg md:text-2xl font-bold text-indigo-900 break-words leading-tight blur-text transition-all duration-300">
+                Hidden Clue
             </h2>
         </div>
 
         <!-- MESSAGE TOAST -->
-        <div id="toastContainer" class="h-6 md:h-8 mb-1 flex items-center justify-center shrink-0">
-            <div id="toast" class="hidden px-4 py-1 rounded-full text-xs md:text-sm font-bold bg-slate-800 text-white transition-opacity duration-300"></div>
+        <div id="toastContainer" class="h-8 mb-1 flex items-center justify-center shrink-0">
+            <div id="toast" class="hidden px-4 py-1 rounded-full text-sm font-bold bg-slate-800 text-white transition-opacity duration-300"></div>
         </div>
 
         <!-- GRID CONTAINER -->
-        <div id="gridContainer" class="w-full flex-1 overflow-y-auto no-scrollbar flex flex-col items-center px-1 pb-2">
+        <div id="gridContainer" class="w-full max-w-lg flex-1 overflow-y-auto no-scrollbar flex flex-col items-center px-4 pb-2">
             <!-- Grid rows generated by JS -->
         </div>
 
@@ -104,53 +109,24 @@
 
     <!-- KEYBOARD AREA -->
     <div class="w-full max-w-2xl p-1 bg-white border-t border-slate-200 shrink-0 safe-area-bottom">
-        
-        <!-- Utility Bar -->
         <div class="flex justify-between items-center px-2 mb-1">
             <div id="guessCounter" class="text-[10px] md:text-xs text-slate-400 font-medium">0 / 6 Guesses</div>
             <button id="hintBtn" class="flex items-center gap-1 text-[10px] md:text-xs font-bold text-indigo-500 hover:text-indigo-700 uppercase p-1 rounded hover:bg-indigo-50 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-1 1.5-2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
-                Need a hint?
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                Show English Clue
             </button>
         </div>
 
-        <!-- Keys -->
         <div id="keyboard" class="flex flex-col gap-1 select-none touch-manipulation pb-1">
-            <!-- Row 1 -->
             <div class="flex gap-1 justify-center touch-manipulation">
-                <button class="key" data-key="Q">Q</button>
-                <button class="key" data-key="W">W</button>
-                <button class="key" data-key="E">E</button>
-                <button class="key" data-key="R">R</button>
-                <button class="key" data-key="T">T</button>
-                <button class="key" data-key="Y">Y</button>
-                <button class="key" data-key="U">U</button>
-                <button class="key" data-key="I">I</button>
-                <button class="key" data-key="O">O</button>
-                <button class="key" data-key="P">P</button>
+                <button class="key" data-key="Q">Q</button><button class="key" data-key="W">W</button><button class="key" data-key="E">E</button><button class="key" data-key="R">R</button><button class="key" data-key="T">T</button><button class="key" data-key="Y">Y</button><button class="key" data-key="U">U</button><button class="key" data-key="I">I</button><button class="key" data-key="O">O</button><button class="key" data-key="P">P</button>
             </div>
-            <!-- Row 2 -->
             <div class="flex gap-1 justify-center touch-manipulation px-2">
-                <button class="key" data-key="A">A</button>
-                <button class="key" data-key="S">S</button>
-                <button class="key" data-key="D">D</button>
-                <button class="key" data-key="F">F</button>
-                <button class="key" data-key="G">G</button>
-                <button class="key" data-key="H">H</button>
-                <button class="key" data-key="J">J</button>
-                <button class="key" data-key="K">K</button>
-                <button class="key" data-key="L">L</button>
+                <button class="key" data-key="A">A</button><button class="key" data-key="S">S</button><button class="key" data-key="D">D</button><button class="key" data-key="F">F</button><button class="key" data-key="G">G</button><button class="key" data-key="H">H</button><button class="key" data-key="J">J</button><button class="key" data-key="K">K</button><button class="key" data-key="L">L</button>
             </div>
-            <!-- Row 3 -->
             <div class="flex gap-1 justify-center touch-manipulation">
-                <button class="key-wide bg-slate-200 text-slate-900" id="enterKey">ENTR</button>
-                <button class="key" data-key="Z">Z</button>
-                <button class="key" data-key="X">X</button>
-                <button class="key" data-key="C">C</button>
-                <button class="key" data-key="V">V</button>
-                <button class="key" data-key="B">B</button>
-                <button class="key" data-key="N">N</button>
-                <button class="key" data-key="M">M</button>
+                <button class="key-wide bg-slate-200 text-slate-900" id="enterKey">ENTER</button>
+                <button class="key" data-key="Z">Z</button><button class="key" data-key="X">X</button><button class="key" data-key="C">C</button><button class="key" data-key="V">V</button><button class="key" data-key="B">B</button><button class="key" data-key="N">N</button><button class="key" data-key="M">M</button>
                 <button class="key-wide bg-slate-200 text-slate-900" id="backspaceKey">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
                 </button>
@@ -159,9 +135,7 @@
     </div>
 
     <script>
-        // --- EXPANDED VOCABULARY LIST (150+ items) ---
         const RAW_VOCAB = [
-            // BASICS & COLOURS
             { word: "NOIR", clue: "Colour: Black", article: "LE" },
             { word: "BLANC", clue: "Colour: White", article: "LE" },
             { word: "ROUGE", clue: "Colour: Red", article: "LE" },
@@ -175,8 +149,6 @@
             { word: "VIOLET", clue: "Colour: Purple", article: "LE" },
             { word: "SOMBRE", clue: "Adjective: Dark", article: "" },
             { word: "CLAIR", clue: "Adjective: Light (colour)", article: "" },
-
-            // FAMILY
             { word: "MERE", display: "MÈRE", clue: "Mother", article: "LA" },
             { word: "PERE", display: "PÈRE", clue: "Father", article: "LE" },
             { word: "SOEUR", display: "SŒUR", clue: "Sister", article: "LA" },
@@ -191,8 +163,6 @@
             { word: "BEBE", display: "BÉBÉ", clue: "Baby", article: "LE" },
             { word: "ENFANT", clue: "Child", article: "L'" },
             { word: "PARENTS", clue: "Parents", article: "LES" },
-
-            // HOME
             { word: "MAISON", clue: "House", article: "LA" },
             { word: "APPARTEMENT", clue: "Apartment / Flat", article: "L'" },
             { word: "JARDIN", clue: "Garden", article: "LE" },
@@ -210,8 +180,6 @@
             { word: "SOL", clue: "Floor / Ground", article: "LE" },
             { word: "TOIT", clue: "Roof", article: "LE" },
             { word: "ESCALIER", clue: "Stairs", article: "L'" },
-
-            // FOOD & DRINK
             { word: "POMME", clue: "Fruit: Apple", article: "LA" },
             { word: "BANANE", clue: "Fruit: Banana", article: "LA" },
             { word: "POIRE", clue: "Fruit: Pear", article: "LA" },
@@ -236,8 +204,6 @@
             { word: "JUS", clue: "Juice", article: "LE" },
             { word: "THE", display: "THÉ", clue: "Tea", article: "LE" },
             { word: "CAFE", display: "CAFÉ", clue: "Coffee", article: "LE" },
-
-            // SCHOOL
             { word: "ECOLE", display: "ÉCOLE", clue: "School", article: "L'" },
             { word: "COLLEGE", display: "COLLÈGE", clue: "Secondary School (Middle)", article: "LE" },
             { word: "LYCEE", display: "LYCÉE", clue: "High School / Sixth Form", article: "LE" },
@@ -256,8 +222,6 @@
             { word: "SCIENCES", clue: "Subject: Science", article: "LES" },
             { word: "DESSIN", clue: "Subject: Art/Drawing", article: "LE" },
             { word: "CAHIER", clue: "Exercise book", article: "LE" },
-
-            // CLOTHES (VETEMENTS)
             { word: "PANTALON", clue: "Trousers", article: "LE" },
             { word: "CHEMISE", clue: "Shirt", article: "LA" },
             { word: "T-SHIRT", clue: "T-shirt", article: "LE" },
@@ -270,8 +234,6 @@
             { word: "CHAUSSETTES", clue: "Socks", article: "LES" },
             { word: "BASKETS", clue: "Trainers / Sneakers", article: "LES" },
             { word: "LUNETTES", clue: "Glasses", article: "LES" },
-
-            // WEATHER (METEO)
             { word: "SOLEIL", clue: "Sun", article: "LE" },
             { word: "PLUIE", clue: "Rain", article: "LA" },
             { word: "NEIGE", clue: "Snow", article: "LA" },
@@ -282,8 +244,6 @@
             { word: "FROID", clue: "Adjective: Cold", article: "" },
             { word: "BEAU", clue: "Adjective: Beautiful / Fine (weather)", article: "" },
             { word: "MAUVAIS", clue: "Adjective: Bad", article: "" },
-
-            // TRANSPORT & TRAVEL
             { word: "VOITURE", clue: "Car", article: "LA" },
             { word: "TRAIN", clue: "Train", article: "LE" },
             { word: "BUS", clue: "Bus", article: "LE" },
@@ -297,8 +257,6 @@
             { word: "PASSEPORT", clue: "Passport", article: "LE" },
             { word: "BILLET", clue: "Ticket", article: "LE" },
             { word: "VALISE", clue: "Suitcase", article: "LA" },
-
-            // PLACES & DIRECTIONS
             { word: "VILLE", clue: "Town / City", article: "LA" },
             { word: "VILLAGE", clue: "Village", article: "LE" },
             { word: "CAMPAGNE", clue: "Countryside", article: "LA" },
@@ -313,8 +271,6 @@
             { word: "PONT", clue: "Bridge", article: "LE" },
             { word: "EGLISE", display: "ÉGLISE", clue: "Church", article: "L'" },
             { word: "MARCHE", display: "MARCHÉ", clue: "Market", article: "LE" },
-
-            // PROFESSIONS (METIERS)
             { word: "MEDECIN", display: "MÉDECIN", clue: "Doctor", article: "LE" },
             { word: "INFIRMIER", clue: "Nurse (Male)", article: "L'" },
             { word: "DENTISTE", clue: "Dentist", article: "LE" },
@@ -325,8 +281,6 @@
             { word: "CHANTEUR", clue: "Singer", article: "LE" },
             { word: "CUISINIER", clue: "Chef / Cook", article: "LE" },
             { word: "FERMIER", clue: "Farmer", article: "LE" },
-
-            // ACTIVITIES
             { word: "FOOTBALL", clue: "Sport: Football", article: "LE" },
             { word: "TENNIS", clue: "Sport: Tennis", article: "LE" },
             { word: "RUGBY", clue: "Sport: Rugby", article: "LE" },
@@ -338,8 +292,6 @@
             { word: "SHOPPING", clue: "Going to the shops", article: "LE" },
             { word: "DANSE", clue: "Dance", article: "LA" },
             { word: "VOYAGE", clue: "Trip / Journey", article: "LE" },
-
-            // BODY & HEALTH
             { word: "TETE", display: "TÊTE", clue: "Head", article: "LA" },
             { word: "BRAS", clue: "Arm", article: "LE" },
             { word: "JAMBE", clue: "Leg", article: "LA" },
@@ -352,8 +304,6 @@
             { word: "MALADE", clue: "Ill / Sick", article: "" },
             { word: "FATIGUE", display: "FATIGUÉ", clue: "Tired", article: "" },
             { word: "HOPITAL", display: "HÔPITAL", clue: "Hospital", article: "L'" },
-
-            // ANIMALS
             { word: "CHIEN", clue: "Dog", article: "LE" },
             { word: "CHAT", clue: "Cat", article: "LE" },
             { word: "OISEAU", clue: "Bird", article: "L'" },
@@ -364,8 +314,6 @@
             { word: "COCHON", clue: "Pig", article: "LE" },
             { word: "VACHE", clue: "Cow", article: "LA" },
             { word: "MOUTON", clue: "Sheep", article: "LE" },
-
-            // PHRASES & MISC
             { word: "J'AI FAIM", clue: "Phrase: 'I am hungry'", article: "" },
             { word: "J'AI SOIF", clue: "Phrase: 'I am thirsty'", article: "" },
             { word: "IL Y A", clue: "Phrase: 'There is' / 'There are'", article: "" },
@@ -386,347 +334,24 @@
 
         const MAX_GUESSES = 6;
         let targetWordObj = null;
-        let guesses = [];
-        let currentInput = ""; // Letters only
-        let state = "playing"; // playing, won, lost
-        let lastSubmittedRowIndex = -1; // To control which row is animating
+        let guesses = []; 
+        let currentInput = ""; 
+        let state = "playing"; 
+        let cleanWordLength = 0;
 
-        // DOM Elements
         const gridContainer = document.getElementById('gridContainer');
         const clueText = document.getElementById('clueText');
         const lengthBadge = document.getElementById('lengthBadge');
         const toastEl = document.getElementById('toast');
         const modal = document.getElementById('resultModal');
         const guessCounter = document.getElementById('guessCounter');
+        const hintBtn = document.getElementById('hintBtn');
 
-        // Initialize
-        function initGame() {
-            // Clean vocab list to ensure consistency
-            const processedVocab = RAW_VOCAB.map(item => {
-                let combinedWord = item.word;
-                let combinedDisplay = item.display || item.word;
-
-                // PREPEND ARTICLE TO GAME WORDS if present
-                if (item.article) {
-                    if (item.article.endsWith("'")) {
-                        // e.g. L'ECOLE
-                        combinedWord = item.article + item.word;
-                        combinedDisplay = item.article + (item.display || item.word);
-                    } else {
-                        // e.g. LA MER
-                        combinedWord = item.article + " " + item.word;
-                        combinedDisplay = item.article + " " + (item.display || item.word);
-                    }
-                }
-
-                const clean = combinedWord.replace(/[^A-Z]/g, ''); // Removes spaces and '
-                
-                return { 
-                    ...item, 
-                    word: combinedWord, // Updates the grid template (includes article)
-                    cleanWord: clean,   // Updates the typing logic (includes article)
-                    fullDisplay: combinedDisplay // Updates the result text
-                };
-            });
-
-            targetWordObj = processedVocab[Math.floor(Math.random() * processedVocab.length)];
-            guesses = [];
-            currentInput = "";
-            state = "playing";
-            lastSubmittedRowIndex = -1;
-
-            // Reset UI
-            clueText.textContent = `"${targetWordObj.clue}"`;
-            lengthBadge.textContent = `${targetWordObj.cleanWord.length} Letters`;
-            guessCounter.textContent = `0 / ${MAX_GUESSES} Guesses`;
-            modal.classList.add('hidden');
-            
-            resetKeyboard();
-            renderGrid();
-        }
-
-        // Render the Grid
-        function renderGrid() {
-            gridContainer.innerHTML = '';
-            
-            // 1. Render submitted guesses
-            guesses.forEach((guess, index) => {
-                const shouldAnimate = index === lastSubmittedRowIndex;
-                gridContainer.appendChild(createRow(guess, 'submitted', shouldAnimate));
-            });
-
-            // 2. Render current active row
-            if (state === 'playing' && guesses.length < MAX_GUESSES) {
-                gridContainer.appendChild(createRow(currentInput, 'active', false));
-            }
-
-            // 3. Render empty rows
-            const rowsRemaining = MAX_GUESSES - guesses.length - (state === 'playing' ? 1 : 0);
-            for (let i = 0; i < rowsRemaining; i++) {
-                gridContainer.appendChild(createRow('', 'empty', false));
-            }
-            
-            // Auto scroll to bottom
-            gridContainer.scrollTop = gridContainer.scrollHeight;
-        }
-
-        function createRow(guessContent, rowStatus, shouldAnimate) {
-            const rowDiv = document.createElement('div');
-            rowDiv.className = "flex justify-center items-center gap-1 mb-2 w-full max-w-full";
-
-            // Visual Template logic (Punctuation handling)
-            const templateChars = targetWordObj.word.toUpperCase().split('');
-            let cleanIndex = 0;
-
-            // Logic for colors (if submitted)
-            let letterColors = [];
-            if (rowStatus === 'submitted') {
-                letterColors = calculateColors(guessContent, targetWordObj.cleanWord);
-            }
-
-            templateChars.forEach((char, i) => {
-                // CASE A: Space
-                if (char === ' ') {
-                    const space = document.createElement('div');
-                    space.className = "w-2 md:w-4 flex-shrink-0";
-                    rowDiv.appendChild(space);
-                    return;
-                }
-
-                // CASE B: Punctuation
-                if (!/[A-Z]/.test(char)) {
-                    const puncBox = document.createElement('div');
-                    puncBox.className = "w-8 h-10 md:w-12 md:h-14 border border-slate-300 bg-slate-200 text-slate-500 flex items-center justify-center text-lg md:text-2xl font-bold rounded flex-shrink-0 select-none";
-                    puncBox.textContent = char;
-                    rowDiv.appendChild(puncBox);
-                    return;
-                }
-
-                // CASE C: Letter Box
-                const box = document.createElement('div');
-                const letter = rowStatus === 'submitted' || rowStatus === 'active' ? (guessContent[cleanIndex] || '') : '';
-                
-                let baseClass = "w-8 h-10 md:w-12 md:h-14 border-2 flex items-center justify-center text-xl md:text-3xl font-bold rounded uppercase flex-shrink-0 transition-all duration-500 select-none";
-                
-                if (rowStatus === 'submitted') {
-                    const status = letterColors[cleanIndex];
-                    box.className = `${baseClass} text-white`;
-                    
-                    if (shouldAnimate) {
-                        box.classList.add('flip-in');
-                        // Stagger animation
-                        box.style.animationDelay = `${cleanIndex * 100}ms`;
-                    }
-                    
-                    if (status === 'correct') box.classList.add('bg-green-500', 'border-green-600');
-                    else if (status === 'present') box.classList.add('bg-yellow-500', 'border-yellow-600');
-                    else box.classList.add('bg-slate-500', 'border-slate-600');
-                    
-                } else if (rowStatus === 'active') {
-                    if (letter) {
-                        box.className = `${baseClass} border-slate-400 bg-white text-slate-900 border-b-4 animate-[pop_0.1s]`; 
-                    } else {
-                        box.className = `${baseClass} border-slate-200 bg-white text-slate-900`;
-                    }
-                } else {
-                    box.className = `${baseClass} border-slate-200 bg-slate-50 opacity-50`;
-                }
-
-                box.textContent = letter;
-                rowDiv.appendChild(box);
-                cleanIndex++;
-            });
-
-            return rowDiv;
-        }
-
-        // Logic: Calculate Colors (Double Pass)
-        function calculateColors(guess, target) {
-            const res = Array(target.length).fill('absent');
-            const targetArr = target.split('');
-            const guessArr = guess.split('');
-            const targetFreq = {};
-
-            // Frequency map
-            targetArr.forEach(c => targetFreq[c] = (targetFreq[c] || 0) + 1);
-
-            // Pass 1: Green
-            for (let i = 0; i < target.length; i++) {
-                if (guessArr[i] === targetArr[i]) {
-                    res[i] = 'correct';
-                    targetFreq[guessArr[i]]--;
-                    guessArr[i] = null;
-                    targetArr[i] = null;
-                }
-            }
-
-            // Pass 2: Yellow
-            for (let i = 0; i < target.length; i++) {
-                if (guessArr[i] !== null) {
-                    if (targetFreq[guessArr[i]] > 0) {
-                        res[i] = 'present';
-                        targetFreq[guessArr[i]]--;
-                    }
-                }
-            }
-            return res;
-        }
-
-        // --- INPUT HANDLING ---
-
-        function handleInput(key) {
-            if (state !== 'playing') return;
-            // Interrupt any previous animations if typing occurs
-            lastSubmittedRowIndex = -1;
-            
-            if (currentInput.length < targetWordObj.cleanWord.length) {
-                currentInput += key;
-                renderGrid();
-            }
-        }
-
-        function handleDelete() {
-            if (state !== 'playing') return;
-            lastSubmittedRowIndex = -1;
-            currentInput = currentInput.slice(0, -1);
-            renderGrid();
-        }
-
-        function handleSubmit() {
-            if (state !== 'playing') return;
-
-            if (currentInput.length !== targetWordObj.cleanWord.length) {
-                showToast("Too short!");
-                // Add shake effect to active row
-                const rows = gridContainer.children;
-                const activeRow = rows[guesses.length];
-                activeRow.classList.add('shake');
-                setTimeout(() => activeRow.classList.remove('shake'), 500);
-                return;
-            }
-
-            // Commit guess
-            guesses.push(currentInput);
-            guessCounter.textContent = `${guesses.length} / ${MAX_GUESSES} Guesses`;
-            
-            // Mark this row for animation
-            lastSubmittedRowIndex = guesses.length - 1;
-            
-            // Update Keyboard Colors
-            updateKeyboard(currentInput);
-
-            // Check Win/Loss
-            if (currentInput === targetWordObj.cleanWord) {
-                state = 'won';
-                renderGrid();
-                setTimeout(() => showResult(true), 1500); // Wait for animations
-            } else if (guesses.length >= MAX_GUESSES) {
-                state = 'lost';
-                renderGrid();
-                setTimeout(() => showResult(false), 1500);
-            } else {
-                currentInput = "";
-                renderGrid();
-                
-                // Clear the animation flag after animation duration so typing doesn't re-trigger it
-                setTimeout(() => {
-                    lastSubmittedRowIndex = -1;
-                }, 2000);
-            }
-        }
-
-        function updateKeyboard(guess) {
-            const colors = calculateColors(guess, targetWordObj.cleanWord);
-            guess.split('').forEach((char, i) => {
-                const keyBtn = document.querySelector(`button[data-key="${char}"]`);
-                if (!keyBtn) return;
-
-                const status = colors[i];
-                // Priority: Green > Yellow > Grey
-                // We check current class to ensures we don't downgrade a green to yellow
-                if (status === 'correct') {
-                    keyBtn.className = "key bg-green-500 text-white border-green-600";
-                } else if (status === 'present' && !keyBtn.classList.contains('bg-green-500')) {
-                    keyBtn.className = "key bg-yellow-500 text-white border-yellow-600";
-                } else if (status === 'absent' && !keyBtn.classList.contains('bg-green-500') && !keyBtn.classList.contains('bg-yellow-500')) {
-                    keyBtn.className = "key bg-slate-500 text-white border-slate-600";
-                }
-            });
-        }
-
-        function resetKeyboard() {
-            document.querySelectorAll('.key').forEach(btn => {
-                btn.className = "key bg-slate-200 hover:bg-slate-300 text-slate-900 border-slate-300";
-            });
-        }
-
-        // --- UI UTILS ---
-
-        function showToast(msg) {
-            toastEl.textContent = msg;
-            toastEl.classList.remove('hidden');
-            toastEl.classList.add('opacity-100');
-            setTimeout(() => {
-                toastEl.classList.remove('opacity-100');
-                toastEl.classList.add('opacity-0');
-                setTimeout(() => toastEl.classList.add('hidden'), 300);
-            }, 1000);
-        }
-
-        function showResult(won) {
-            modal.classList.remove('hidden');
-            const title = document.getElementById('resultTitle');
-            const word = document.getElementById('resultWord');
-            const icon = document.getElementById('resultIcon');
-
-            if (won) {
-                title.textContent = "C'est Correct!";
-                title.className = "text-2xl md:text-3xl font-bold text-green-600 mb-2";
-                icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>`;
-            } else {
-                title.textContent = "Dommage...";
-                title.className = "text-2xl md:text-3xl font-bold text-red-600 mb-2";
-                icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`;
-            }
-            word.textContent = targetWordObj.fullDisplay;
-        }
-
-        // --- EVENT LISTENERS ---
-
-        document.getElementById('keyboard').addEventListener('click', (e) => {
-            const btn = e.target.closest('button');
-            if (!btn) return;
-
-            if (btn.id === 'enterKey') handleSubmit();
-            else if (btn.id === 'backspaceKey') handleDelete();
-            else if (btn.dataset.key) handleInput(btn.dataset.key);
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey || e.metaKey || e.altKey) return;
-            const key = e.key.toUpperCase();
-            if (key === 'ENTER') handleSubmit();
-            else if (key === 'BACKSPACE') handleDelete();
-            else if (/^[A-Z]$/.test(key) && key.length === 1) handleInput(key);
-        });
-
-        document.getElementById('restartBtn').addEventListener('click', initGame);
-        document.getElementById('modalRestartBtn').addEventListener('click', initGame);
-
-        document.getElementById('hintBtn').addEventListener('click', () => {
-            if (state !== 'playing') return;
-            const target = targetWordObj.cleanWord;
-            const idx = currentInput.length;
-            if (idx < target.length) {
-                handleInput(target[idx]);
-            }
-        });
-
-        // Styles for dynamic buttons created in HTML
+        // Styles injection
         const styleSheet = document.createElement("style");
         styleSheet.innerText = `
             .key { 
-                height: 3rem; /* Reduced from 3.5rem */
+                height: 3rem; 
                 flex: 1; 
                 font-weight: bold; 
                 border-radius: 0.25rem; 
@@ -740,7 +365,7 @@
             }
             .key:active { transform: scale(0.95); }
             .key-wide { 
-                height: 3rem; /* Reduced from 3.5rem */
+                height: 3rem; 
                 flex: 1.5; 
                 font-weight: bold; 
                 border-radius: 0.25rem; 
@@ -755,22 +380,356 @@
             }
             .key-wide:active { transform: scale(0.95); }
 
-            /* Taller screens */
             @media (min-height: 600px) {
                  .key, .key-wide { height: 3.5rem; }
             }
 
-            /* Tablet/Desktop */
             @media (min-width: 768px) {
                 .key, .key-wide { height: 4rem; font-size: 1rem; }
             }
             
-            /* Very short screens (landscape mobile) */
             @media (max-height: 480px) {
                 .key, .key-wide { height: 2.2rem; font-size: 0.75rem; }
             }
         `;
         document.head.appendChild(styleSheet);
+        
+        // Define styles here to avoid using @apply in style tags which fails in some browsers without build step
+        const CELL_BASE = "flex-1 aspect-[4/5] max-w-[3.5rem] flex items-center justify-center font-bold rounded select-none transition-all duration-200";
+        const CELL_EMPTY = "border-2 border-slate-300 bg-slate-50 text-slate-900";
+        const CELL_FILLED = "border-2 border-slate-500 bg-white text-slate-900 border-b-4";
+        const CELL_CORRECT = "bg-green-500 border-green-600 text-white border-2";
+        const CELL_PRESENT = "bg-yellow-500 border-yellow-600 text-white border-2";
+        const CELL_ABSENT = "bg-slate-500 border-slate-600 text-white border-2";
+        const CELL_PUNC = "flex-1 aspect-[4/5] max-w-[3.5rem] flex items-center justify-center font-bold rounded select-none border border-slate-200 bg-slate-100 text-slate-400";
+
+
+        function initGame() {
+            // Pick word
+            const rawItem = RAW_VOCAB[Math.floor(Math.random() * RAW_VOCAB.length)];
+            
+            // Format word
+            let combinedWord = rawItem.word;
+            let combinedDisplay = rawItem.display || rawItem.word;
+            if (rawItem.article) {
+                if (rawItem.article.endsWith("'")) {
+                    combinedWord = rawItem.article + rawItem.word;
+                    combinedDisplay = rawItem.article + (rawItem.display || rawItem.word);
+                } else {
+                    combinedWord = rawItem.article + " " + rawItem.word;
+                    combinedDisplay = rawItem.article + " " + (rawItem.display || rawItem.word);
+                }
+            }
+
+            const clean = combinedWord.replace(/[^A-Z]/g, '');
+
+            targetWordObj = {
+                ...rawItem,
+                word: combinedWord, // Template word (has spaces/punct)
+                cleanWord: clean,   // Logic word (letters only)
+                fullDisplay: combinedDisplay
+            };
+
+            cleanWordLength = clean.length;
+            guesses = [];
+            currentInput = "";
+            state = "playing";
+
+            // UI Reset
+            clueText.textContent = `"${targetWordObj.clue}"`;
+            // Hide clue by adding blur class
+            clueText.classList.add('blur-text');
+            lengthBadge.textContent = `${cleanWordLength} Letters`;
+            guessCounter.textContent = `0 / ${MAX_GUESSES} Guesses`;
+            modal.classList.add('hidden');
+            
+            // Show hint button again
+            hintBtn.style.visibility = 'visible';
+            
+            resetKeyboard();
+            
+            // BUILD GRID ONCE
+            buildGridStructure();
+        }
+
+        // --- GRID BUILDING ---
+        function buildGridStructure() {
+            gridContainer.innerHTML = '';
+            
+            const templateChars = targetWordObj.word.toUpperCase().split('');
+            const wordLength = targetWordObj.cleanWord.length;
+            
+            // Responsive sizing logic
+            let fontSizeClass = "text-xl md:text-3xl";
+            if (wordLength > 8) fontSizeClass = "text-lg md:text-2xl";
+            if (wordLength > 12) fontSizeClass = "text-base md:text-xl";
+            
+            for (let r = 0; r < MAX_GUESSES; r++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = "flex justify-center items-center gap-1 mb-2 w-full max-w-full";
+                rowDiv.dataset.row = r;
+
+                let charIndex = 0;
+                templateChars.forEach((char, c) => {
+                    // Space
+                    if (char === ' ') {
+                        const space = document.createElement('div');
+                        space.className = "w-2 md:w-4 flex-shrink-0";
+                        rowDiv.appendChild(space);
+                        return;
+                    }
+                    // Punctuation
+                    if (!/[A-Z]/.test(char)) {
+                        const puncBox = document.createElement('div');
+                        puncBox.className = `${CELL_PUNC} ${fontSizeClass}`;
+                        puncBox.textContent = char;
+                        rowDiv.appendChild(puncBox);
+                        return;
+                    }
+                    
+                    // Letter Box
+                    const box = document.createElement('div');
+                    // Base classes + initial empty state
+                    // Removed fixed w/h, added aspect ratio & flex-1
+                    box.className = `${CELL_BASE} ${CELL_EMPTY} ${fontSizeClass}`;
+                    box.dataset.index = charIndex; 
+                    box.textContent = ""; 
+                    
+                    rowDiv.appendChild(box);
+                    charIndex++;
+                });
+                gridContainer.appendChild(rowDiv);
+            }
+            // Scroll to bottom
+            gridContainer.scrollTop = gridContainer.scrollHeight;
+        }
+
+        // --- TARGETED UPDATE ---
+        function updateCurrentRow() {
+            const rowDiv = gridContainer.children[guesses.length];
+            if (!rowDiv) return;
+
+            const boxes = rowDiv.querySelectorAll('div[data-index]');
+            
+            boxes.forEach((box) => {
+                const idx = parseInt(box.dataset.index);
+                const char = currentInput[idx];
+                
+                // Get current size class to preserve it
+                const sizeClass = Array.from(box.classList).find(c => c.startsWith('text-'));
+
+                if (char) {
+                    box.textContent = char;
+                    if (!box.className.includes(CELL_FILLED)) {
+                        box.className = `${CELL_BASE} ${CELL_FILLED} ${sizeClass} pop`;
+                        setTimeout(() => box.classList.remove('pop'), 100);
+                    }
+                } else {
+                    box.textContent = "";
+                    if (!box.className.includes(CELL_EMPTY)) {
+                        box.className = `${CELL_BASE} ${CELL_EMPTY} ${sizeClass}`;
+                    }
+                }
+            });
+        }
+
+        // --- ANIMATE & SUBMIT ---
+        async function submitGuess() {
+            if (state !== 'playing') return;
+            
+            const currentRowIndex = guesses.length;
+            const rowDiv = gridContainer.children[currentRowIndex];
+            
+            if (currentInput.length !== cleanWordLength) {
+                showToast("Too short!");
+                rowDiv.classList.add('shake');
+                setTimeout(() => rowDiv.classList.remove('shake'), 500);
+                return;
+            }
+
+            // Lock Input
+            state = "animating";
+            
+            const guess = currentInput;
+            const colors = calculateColors(guess, targetWordObj.cleanWord);
+            const boxes = rowDiv.querySelectorAll('div[data-index]');
+
+            await new Promise(resolve => {
+                boxes.forEach((box, i) => {
+                    setTimeout(() => {
+                        box.classList.add('flip');
+                        
+                        setTimeout(() => {
+                            const status = colors[i];
+                            const sizeClass = Array.from(box.classList).find(c => c.startsWith('text-'));
+                            
+                            let statusClass = CELL_ABSENT;
+                            if (status === 'correct') statusClass = CELL_CORRECT;
+                            if (status === 'present') statusClass = CELL_PRESENT;
+                            
+                            box.className = `${CELL_BASE} ${statusClass} ${sizeClass} flip`;
+                        }, 250);
+
+                    }, i * 300);
+                });
+
+                const totalTime = (boxes.length - 1) * 300 + 500;
+                setTimeout(resolve, totalTime);
+            });
+
+            guesses.push(guess);
+            guessCounter.textContent = `${guesses.length} / ${MAX_GUESSES} Guesses`;
+            updateKeyboard(guess, colors);
+
+            if (guess === targetWordObj.cleanWord) {
+                state = "won";
+                showResult(true);
+            } else if (guesses.length >= MAX_GUESSES) {
+                state = "lost";
+                showResult(false);
+            } else {
+                state = "playing";
+                currentInput = "";
+                // Auto scroll
+                if (gridContainer.children[guesses.length]) {
+                     gridContainer.children[guesses.length].scrollIntoView({ behavior: 'smooth', block: 'end' });
+                }
+            }
+        }
+
+        // Logic: Calculate Colors (Double Pass)
+        function calculateColors(guess, target) {
+            const res = Array(target.length).fill('absent');
+            const targetArr = target.split('');
+            const guessArr = guess.split('');
+            const targetFreq = {};
+
+            targetArr.forEach(c => targetFreq[c] = (targetFreq[c] || 0) + 1);
+
+            // Pass 1: Green
+            for (let i = 0; i < target.length; i++) {
+                if (guessArr[i] === targetArr[i]) {
+                    res[i] = 'correct';
+                    targetFreq[guessArr[i]]--;
+                    guessArr[i] = null;
+                    targetArr[i] = null;
+                }
+            }
+            // Pass 2: Yellow
+            for (let i = 0; i < target.length; i++) {
+                if (guessArr[i] !== null) {
+                    if (targetFreq[guessArr[i]] > 0) {
+                        res[i] = 'present';
+                        targetFreq[guessArr[i]]--;
+                    }
+                }
+            }
+            return res;
+        }
+
+        function updateKeyboard(guess, colors) {
+            guess.split('').forEach((char, i) => {
+                const keyBtn = document.querySelector(`button[data-key="${char}"]`);
+                if (!keyBtn) return;
+
+                const status = colors[i];
+                const currentClass = keyBtn.className;
+                
+                // Priority: Green > Yellow > Grey
+                if (status === 'correct') {
+                    keyBtn.className = "key bg-green-500 text-white border-green-600";
+                } else if (status === 'present' && !currentClass.includes('bg-green-500')) {
+                    keyBtn.className = "key bg-yellow-500 text-white border-yellow-600";
+                } else if (status === 'absent' && !currentClass.includes('bg-green-500') && !currentClass.includes('bg-yellow-500')) {
+                    keyBtn.className = "key bg-slate-500 text-white border-slate-600";
+                }
+            });
+        }
+
+        function handleInput(key) {
+            if (state !== 'playing') return;
+            if (currentInput.length < cleanWordLength) {
+                currentInput += key;
+                updateCurrentRow();
+            }
+        }
+
+        function handleDelete() {
+            if (state !== 'playing') return;
+            currentInput = currentInput.slice(0, -1);
+            updateCurrentRow();
+        }
+
+        function resetKeyboard() {
+            document.querySelectorAll('.key').forEach(btn => {
+                btn.className = "key bg-slate-200 hover:bg-slate-300 text-slate-900 border-slate-300";
+            });
+        }
+
+        function showToast(msg) {
+            toastEl.textContent = msg;
+            toastEl.classList.remove('hidden');
+            toastEl.classList.add('opacity-100');
+            setTimeout(() => {
+                toastEl.classList.remove('opacity-100');
+                toastEl.classList.add('opacity-0');
+                setTimeout(() => toastEl.classList.add('hidden'), 300);
+            }, 1000);
+        }
+
+        function showResult(won) {
+            setTimeout(() => {
+                modal.classList.remove('hidden');
+                const title = document.getElementById('resultTitle');
+                const word = document.getElementById('resultWord');
+                const icon = document.getElementById('resultIcon');
+
+                if (won) {
+                    title.textContent = "C'est Correct!";
+                    title.className = "text-2xl md:text-3xl font-bold text-green-600 mb-2";
+                    icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>`;
+                } else {
+                    title.textContent = "Dommage...";
+                    title.className = "text-2xl md:text-3xl font-bold text-red-600 mb-2";
+                    icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`;
+                }
+                word.textContent = targetWordObj.fullDisplay;
+                // Reveal the clue if they lost
+                if (!won) {
+                    clueText.classList.remove('blur-text');
+                }
+            }, 500);
+        }
+
+        // --- EVENT LISTENERS ---
+
+        document.getElementById('keyboard').addEventListener('click', (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            e.preventDefault();
+
+            if (btn.id === 'enterKey') submitGuess();
+            else if (btn.id === 'backspaceKey') handleDelete();
+            else if (btn.dataset.key) handleInput(btn.dataset.key);
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+            const key = e.key.toUpperCase();
+            if (key === 'ENTER') submitGuess();
+            else if (key === 'BACKSPACE') handleDelete();
+            else if (/^[A-Z]$/.test(key) && key.length === 1) handleInput(key);
+        });
+
+        document.getElementById('restartBtn').addEventListener('click', initGame);
+        document.getElementById('modalRestartBtn').addEventListener('click', initGame);
+
+        hintBtn.addEventListener('click', () => {
+            if (state !== 'playing') return;
+            // Simply remove the blur class to reveal the clue
+            clueText.classList.remove('blur-text');
+            hintBtn.style.visibility = 'hidden';
+        });
 
         // Start Game
         initGame();
