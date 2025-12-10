@@ -48,27 +48,59 @@
         /* Hint Toast Animation */
         .fade-in { animation: fadeIn 0.2s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ACCESSIBILITY & UTILITIES */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        /* High visibility focus ring for keyboard navigation */
+        :focus-visible {
+            outline: 3px solid #4338ca; /* indigo-700 */
+            outline-offset: 2px;
+        }
+
+        /* Respect Reduced Motion preferences */
+        @media (prefers-reduced-motion: reduce) {
+            *, ::before, ::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
     </style>
 </head>
-<!-- h-[100dvh] forces full viewport height, overflow-hidden prevents scrolling -->
+<!-- h-[100dvh] forces full viewport height, overflow-hidden prevents scrolling to act like an app -->
 <body class="bg-slate-50 text-slate-800 h-[100dvh] w-full flex flex-col overflow-hidden">
 
+    <!-- Screen Reader Live Region for Announcements -->
+    <div id="liveRegion" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
     <!-- HEADER: Fixed Height -->
-    <header class="w-full bg-indigo-600 text-white p-2 shadow-md flex justify-between items-center z-30 shrink-0 h-12 md:h-14">
+    <header class="w-full bg-indigo-600 text-white p-2 shadow-md flex justify-between items-center z-30 shrink-0 h-12">
         <div class="flex items-center gap-2 pl-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             <h1 class="text-lg font-bold tracking-wider">LE MOT-CROSS</h1>
         </div>
         <div class="flex items-center gap-2">
-            <span id="headerLengthBadge" class="bg-indigo-700 px-2 py-1 rounded text-xs font-bold">5 Letters</span>
-            <button id="restartBtn" class="p-2 hover:bg-indigo-700 rounded-full transition-colors" title="New Game">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+            <span id="headerLengthBadge" class="bg-indigo-700 px-2 py-1 rounded text-xs font-bold" aria-label="Word length">5 Letters</span>
+            <button id="restartBtn" class="p-2 hover:bg-indigo-700 rounded-full transition-colors" aria-label="Start New Game">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
             </button>
         </div>
     </header>
 
     <!-- HINT OVERLAY -->
-    <div id="hintOverlay" class="fixed top-16 left-0 right-0 z-50 flex justify-center pointer-events-none opacity-0 transition-opacity duration-200 px-4">
+    <div id="hintOverlay" class="fixed top-14 left-0 right-0 z-50 flex justify-center pointer-events-none opacity-0 transition-opacity duration-200 px-4 mt-2" aria-hidden="true">
         <div class="bg-slate-900/95 text-white px-6 py-4 rounded-xl shadow-2xl backdrop-blur-sm w-full max-w-sm text-center border border-slate-700">
             <p class="text-xs uppercase text-slate-400 font-bold mb-1">English Clue</p>
             <p id="hintText" class="text-xl font-bold leading-tight">Hold to see clue</p>
@@ -77,45 +109,46 @@
 
     <!-- MESSAGE TOAST -->
     <div id="toastContainer" class="fixed top-14 left-0 right-0 flex justify-center z-40 pointer-events-none">
-        <div id="toast" class="hidden px-4 py-2 rounded-lg text-sm font-bold bg-slate-800 text-white shadow-lg transition-opacity duration-300 transform translate-y-2"></div>
+        <div id="toast" role="alert" class="hidden px-4 py-2 rounded-lg text-sm font-bold bg-slate-800 text-white shadow-lg transition-opacity duration-300 transform translate-y-2"></div>
     </div>
 
-    <!-- MAIN CONTENT: Flexible Height -->
-    <main class="w-full flex-grow flex flex-col items-center justify-center min-h-0 relative">
-        <!-- Grid Container: Fills available space but respects margins -->
-        <div id="gridContainer" class="flex flex-col justify-center items-center w-full max-w-md px-2 py-1 h-full max-h-full">
+    <!-- MAIN CONTENT: Flexible Height (Wordle Logic) -->
+    <!-- flex-grow with min-h-0 allows this container to shrink to fit available space -->
+    <main class="w-full flex-grow flex flex-col items-center justify-center min-h-0 relative py-2">
+        <!-- Grid Container: Max width ensures squares don't stretch too wide. h-full ensures it fills vertical space -->
+        <div id="gridContainer" class="flex flex-col justify-center items-center w-full max-w-[350px] h-full px-2" role="grid" aria-label="Game Grid">
             <!-- Grid rows generated by JS -->
         </div>
     </main>
 
-    <!-- KEYBOARD SECTION: Fixed/Shrinkable Height -->
+    <!-- KEYBOARD SECTION: Fixed Height Wrapper -->
     <div class="w-full bg-slate-100 border-t border-slate-200 shrink-0 z-20 pb-safe">
         <!-- Utility Bar -->
-        <div class="flex justify-between items-center px-3 py-1 w-full max-w-lg mx-auto h-8 md:h-10">
-            <div id="guessCounter" class="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-wider">0 / 6</div>
-            <button id="hintBtn" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-[10px] md:text-xs font-bold py-1 px-3 rounded-full flex items-center gap-1 transition-colors select-none touch-none shadow-sm active:scale-95 transform">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        <div class="flex justify-between items-center px-3 w-full max-w-lg mx-auto h-8">
+            <div id="guessCounter" class="text-[10px] text-slate-500 font-bold uppercase tracking-wider" aria-live="polite">0 / 6</div>
+            <button id="hintBtn" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-[10px] font-bold py-1 px-3 rounded-full flex items-center gap-1 transition-colors select-none touch-none shadow-sm active:scale-95 transform" aria-label="Hold to reveal English Clue">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                 HOLD FOR CLUE
             </button>
         </div>
 
         <!-- Keyboard Keys -->
-        <div id="keyboard" class="flex flex-col gap-1.5 w-full max-w-lg mx-auto px-1 pb-2 md:pb-4 select-none touch-manipulation justify-end">
+        <div id="keyboard" class="flex flex-col gap-1.5 w-full max-w-lg mx-auto px-1 pb-2 select-none touch-manipulation justify-end" role="group" aria-label="Virtual Keyboard">
             <!-- Keys generated here via styles for height control -->
             <div class="flex gap-1 justify-center w-full"><button class="key" data-key="Q">Q</button><button class="key" data-key="W">W</button><button class="key" data-key="E">E</button><button class="key" data-key="R">R</button><button class="key" data-key="T">T</button><button class="key" data-key="Y">Y</button><button class="key" data-key="U">U</button><button class="key" data-key="I">I</button><button class="key" data-key="O">O</button><button class="key" data-key="P">P</button></div>
             <div class="flex gap-1 justify-center w-full px-4"><button class="key" data-key="A">A</button><button class="key" data-key="S">S</button><button class="key" data-key="D">D</button><button class="key" data-key="F">F</button><button class="key" data-key="G">G</button><button class="key" data-key="H">H</button><button class="key" data-key="J">J</button><button class="key" data-key="K">K</button><button class="key" data-key="L">L</button></div>
-            <div class="flex gap-1 justify-center w-full"><button class="key-wide bg-slate-300 text-slate-900" id="enterKey">ENTER</button><button class="key" data-key="Z">Z</button><button class="key" data-key="X">X</button><button class="key" data-key="C">C</button><button class="key" data-key="V">V</button><button class="key" data-key="B">B</button><button class="key" data-key="N">N</button><button class="key" data-key="M">M</button><button class="key-wide bg-slate-300 text-slate-900" id="backspaceKey"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg></button></div>
+            <div class="flex gap-1 justify-center w-full"><button class="key-wide bg-slate-300 text-slate-900" id="enterKey" aria-label="Enter Guess">ENTER</button><button class="key" data-key="Z">Z</button><button class="key" data-key="X">X</button><button class="key" data-key="C">C</button><button class="key" data-key="V">V</button><button class="key" data-key="B">B</button><button class="key" data-key="N">N</button><button class="key" data-key="M">M</button><button class="key-wide bg-slate-300 text-slate-900" id="backspaceKey" aria-label="Backspace"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg></button></div>
         </div>
     </div>
 
     <!-- MODAL (Win/Loss) -->
-    <div id="resultModal" class="hidden fixed inset-0 z-50 bg-slate-900/80 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300">
+    <div id="resultModal" class="hidden fixed inset-0 z-50 bg-slate-900/80 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
         <div class="bg-white p-6 rounded-2xl shadow-2xl border border-slate-100 text-center max-w-sm w-full transform scale-100">
-            <div id="resultIcon" class="flex justify-center mb-3"></div>
+            <div id="resultIcon" class="flex justify-center mb-3" aria-hidden="true"></div>
             <h3 id="resultTitle" class="text-2xl font-bold text-slate-800 mb-2"></h3>
             <p class="text-slate-500 text-sm uppercase font-bold tracking-wide mb-1">The answer was</p>
             <p id="resultWord" class="text-xl font-bold text-indigo-600 mb-6"></p>
-            <button id="modalRestartBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-indigo-200 transition-all transform hover:-translate-y-1">
+            <button id="modalRestartBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-indigo-200 transition-all transform hover:-translate-y-1 focus:ring-4 focus:ring-indigo-300">
                 Play Again (Jouer Encore)
             </button>
         </div>
@@ -125,11 +158,9 @@
         // CSS INJECTION FOR RESPONSIVE SCALING
         const styleSheet = document.createElement("style");
         styleSheet.innerText = `
-            /* KEYBOARD STYLES: Use vh to scale with height */
+            /* KEYBOARD STYLES */
             .key { 
-                height: 5.5vh; 
-                max-height: 3.5rem;
-                min-height: 2.2rem;
+                height: 3.5rem;
                 flex: 1; 
                 font-weight: bold; 
                 border-radius: 4px; 
@@ -145,9 +176,7 @@
             .key:active { transform: translateY(1px); border-bottom-width: 0px; margin-top: 1px; }
             
             .key-wide { 
-                height: 5.5vh; 
-                max-height: 3.5rem;
-                min-height: 2.2rem;
+                height: 3.5rem;
                 flex: 1.5; 
                 font-weight: bold; 
                 border-radius: 4px; 
@@ -160,7 +189,15 @@
             }
             .key-wide:active { transform: translateY(1px); border-bottom-width: 0px; margin-top: 1px; }
 
-            /* GRID ROW STYLES: Flexible height to fill space */
+            /* MEDIA QUERIES TO SHRINK KEYS ON SMALL SCREENS */
+            @media (max-height: 650px) {
+                .key, .key-wide { height: 2.75rem; font-size: 0.75rem; }
+            }
+            @media (max-height: 550px) {
+                .key, .key-wide { height: 2.2rem; font-size: 0.7rem; }
+            }
+
+            /* GRID ROW STYLES: Flexible height */
             .grid-row {
                 flex: 1;
                 display: flex;
@@ -168,32 +205,41 @@
                 align-items: center;
                 gap: 0.25rem;
                 width: 100%;
-                /* Restrict max height to keep squares square-ish */
-                max-height: 14%; 
+                max-height: 65px;
             }
 
             /* GRID CELL STYLES */
-            /* Using aspect-ratio to keep them square, height constrained by parent row */
             .cell-base {
                 height: 100%;
-                aspect-ratio: 4/5;
+                /* Enforce square aspect ratio */
+                aspect-ratio: 1 / 1; 
+                max-width: 3.5rem;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 font-weight: bold;
-                border-radius: 4px;
+                border-radius: 2px;
                 user-select: none;
                 transition: all 0.2s;
-                font-size: clamp(1rem, 4vh, 2rem);
+                font-size: 1.75rem;
             }
+            
+            /* Font scaling for smaller screens */
+            @media (max-height: 650px) { .cell-base { font-size: 1.25rem; } }
+
             .cell-empty { border: 2px solid #cbd5e1; background: white; }
             .cell-filled { border: 2px solid #64748b; background: white; border-bottom-width: 4px; animation: pop 0.1s linear; }
             .cell-correct { background: #22c55e; border: 2px solid #16a34a; color: white; }
             .cell-present { background: #eab308; border: 2px solid #ca8a04; color: white; }
             .cell-absent { background: #64748b; border: 2px solid #475569; color: white; }
             .cell-punc { 
-                height: 100%; aspect-ratio: 4/5; display: flex; align-items: center; justify-content: center; 
-                font-weight: bold; border-radius: 4px; border: 1px solid #e2e8f0; background: #f1f5f9; color: #94a3b8;
+                height: 100%; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; 
+                font-weight: bold; border-radius: 2px; border: 1px solid #e2e8f0; background: #f1f5f9; color: #94a3b8;
+            }
+            .cell-spacer {
+                height: 100%;
+                aspect-ratio: 0.5 / 1;
+                max-width: 1.75rem;
             }
         `;
         document.head.appendChild(styleSheet);
@@ -410,6 +456,11 @@
         const modal = document.getElementById('resultModal');
         const guessCounter = document.getElementById('guessCounter');
         const hintBtn = document.getElementById('hintBtn');
+        const liveRegion = document.getElementById('liveRegion');
+
+        function announce(text) {
+            liveRegion.textContent = text;
+        }
 
         function initGame() {
             const rawItem = RAW_VOCAB[Math.floor(Math.random() * RAW_VOCAB.length)];
@@ -448,6 +499,11 @@
             
             resetKeyboard();
             buildGridStructure();
+            
+            announce("Game started. The clue is hidden. Use the hint button if needed.");
+            
+            // Return focus to body/game container so keyboard typing works immediately
+            document.activeElement.blur();
         }
 
         // --- GRID BUILDING ---
@@ -458,15 +514,17 @@
             
             for (let r = 0; r < MAX_GUESSES; r++) {
                 const rowDiv = document.createElement('div');
-                // Use class for responsive grid row
                 rowDiv.className = "grid-row";
                 rowDiv.dataset.row = r;
+                rowDiv.role = "group";
+                rowDiv.ariaLabel = `Row ${r + 1}`;
 
                 let charIndex = 0;
                 templateChars.forEach((char, c) => {
                     if (char === ' ') {
                         const space = document.createElement('div');
-                        space.style.width = "4%"; // proportional spacing
+                        space.className = "cell-spacer";
+                        space.ariaHidden = "true";
                         rowDiv.appendChild(space);
                         return;
                     }
@@ -474,6 +532,7 @@
                         const puncBox = document.createElement('div');
                         puncBox.className = "cell-punc";
                         puncBox.textContent = char;
+                        puncBox.ariaHidden = "true"; // Decorative punctuation usually
                         rowDiv.appendChild(puncBox);
                         return;
                     }
@@ -482,6 +541,7 @@
                     box.className = "cell-base cell-empty";
                     box.dataset.index = charIndex; 
                     box.textContent = ""; 
+                    box.ariaHidden = "true"; // Content managed by row label
                     
                     rowDiv.appendChild(box);
                     charIndex++;
@@ -496,6 +556,7 @@
             if (!rowDiv) return;
 
             const boxes = rowDiv.querySelectorAll('div[data-index]');
+            let currentWordForLabel = "";
             
             boxes.forEach((box) => {
                 const idx = parseInt(box.dataset.index);
@@ -503,6 +564,7 @@
 
                 if (char) {
                     box.textContent = char;
+                    currentWordForLabel += char + " ";
                     if (!box.className.includes("cell-filled")) {
                         box.className = box.className.replace("cell-empty", "cell-filled") + " pop";
                         setTimeout(() => box.classList.remove('pop'), 100);
@@ -510,11 +572,13 @@
                 } else {
                     box.textContent = "";
                     if (!box.className.includes("cell-empty")) {
-                        // Reset to empty state, remove colors if somehow stuck
                         box.className = "cell-base cell-empty";
                     }
                 }
             });
+            
+            // Update row aria-label for screen readers
+            rowDiv.ariaLabel = `Row ${guesses.length + 1}: ${currentWordForLabel.trim()}`;
         }
 
         // --- ANIMATE & SUBMIT ---
@@ -526,6 +590,7 @@
             
             if (currentInput.length !== cleanWordLength) {
                 showToast("Too short!");
+                announce("Too short");
                 rowDiv.classList.add('shake');
                 setTimeout(() => rowDiv.classList.remove('shake'), 500);
                 return;
@@ -543,9 +608,7 @@
                         box.classList.add('flip');
                         setTimeout(() => {
                             const status = colors[i];
-                            // Remove base states
                             box.classList.remove("cell-filled", "cell-empty");
-                            // Add result state
                             box.classList.add("cell-" + status);
                         }, 250);
                     }, i * 200);
@@ -554,6 +617,14 @@
                 const totalTime = (boxes.length - 1) * 200 + 500;
                 setTimeout(resolve, totalTime);
             });
+
+            // Update row label with results
+            let resultLabel = `Row ${currentRowIndex + 1} submitted: `;
+            guess.split('').forEach((char, i) => {
+                resultLabel += `${char} ${colors[i]}, `;
+            });
+            rowDiv.ariaLabel = resultLabel;
+            announce(resultLabel);
 
             guesses.push(guess);
             guessCounter.textContent = `${guesses.length} / ${MAX_GUESSES}`;
@@ -568,7 +639,6 @@
             } else {
                 state = "playing";
                 currentInput = "";
-                // No scroll needed as entire view fits 100dvh
             }
         }
 
@@ -607,19 +677,21 @@
                 const status = colors[i];
                 const currentClass = keyBtn.className;
                 
-                // Add bg colors via style directly to override default
                 if (status === 'correct') {
-                    keyBtn.style.backgroundColor = "#22c55e"; // green-500
+                    keyBtn.style.backgroundColor = "#22c55e"; 
                     keyBtn.style.borderColor = "#16a34a";
                     keyBtn.style.color = "white";
-                } else if (status === 'present' && keyBtn.style.backgroundColor !== "rgb(34, 197, 94)") { // check for green
-                    keyBtn.style.backgroundColor = "#eab308"; // yellow-500
+                    keyBtn.ariaLabel = `${char} correct`;
+                } else if (status === 'present' && keyBtn.style.backgroundColor !== "rgb(34, 197, 94)") { 
+                    keyBtn.style.backgroundColor = "#eab308"; 
                     keyBtn.style.borderColor = "#ca8a04";
                     keyBtn.style.color = "white";
+                    keyBtn.ariaLabel = `${char} present`;
                 } else if (status === 'absent' && !keyBtn.style.backgroundColor) {
-                    keyBtn.style.backgroundColor = "#64748b"; // slate-500
+                    keyBtn.style.backgroundColor = "#64748b"; 
                     keyBtn.style.borderColor = "#475569";
                     keyBtn.style.color = "white";
+                    keyBtn.ariaLabel = `${char} absent`;
                 }
             });
         }
@@ -641,6 +713,8 @@
         function resetKeyboard() {
             document.querySelectorAll('.key, .key-wide').forEach(btn => {
                 btn.style = "";
+                // Reset aria labels
+                if (btn.dataset.key) btn.ariaLabel = btn.dataset.key;
             });
         }
 
@@ -661,17 +735,25 @@
                 const title = document.getElementById('resultTitle');
                 const word = document.getElementById('resultWord');
                 const icon = document.getElementById('resultIcon');
+                
+                // Focus the play again button for accessibility
+                const restartBtn = document.getElementById('modalRestartBtn');
 
                 if (won) {
                     title.textContent = "C'est Correct!";
                     title.className = "text-2xl font-bold text-green-600 mb-2";
-                    icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>`;
+                    icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>`;
+                    announce("You won! The answer was " + targetWordObj.fullDisplay);
                 } else {
                     title.textContent = "Dommage...";
                     title.className = "text-2xl font-bold text-red-600 mb-2";
-                    icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`;
+                    icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`;
+                    announce("Game over. The answer was " + targetWordObj.fullDisplay);
                 }
                 word.textContent = targetWordObj.fullDisplay;
+                
+                // Move focus to restart button
+                setTimeout(() => restartBtn.focus(), 100);
             }, 500);
         }
 
@@ -682,12 +764,25 @@
             if (!btn) return;
             e.preventDefault();
 
-            if (btn.id === 'enterKey') submitGuess();
+            if (btn.id === 'enterKey') {
+                if (state === 'won' || state === 'lost') {
+                    initGame();
+                } else {
+                    submitGuess();
+                }
+            }
             else if (btn.id === 'backspaceKey') handleDelete();
             else if (btn.dataset.key) handleInput(btn.dataset.key);
         });
 
         document.addEventListener('keydown', (e) => {
+            // Check for Enter key to restart if game is over
+            if (e.key === 'Enter' && (state === 'won' || state === 'lost')) {
+                e.preventDefault();
+                initGame();
+                return;
+            }
+
             if (e.ctrlKey || e.metaKey || e.altKey) return;
             const key = e.key.toUpperCase();
             if (key === 'ENTER') submitGuess();
@@ -702,6 +797,7 @@
         const showHint = () => {
             hintOverlay.classList.remove('opacity-0');
             hintOverlay.classList.add('fade-in');
+            announce("Clue: " + targetWordObj.clue);
         };
         const hideHint = () => {
             hintOverlay.classList.add('opacity-0');
