@@ -24,7 +24,7 @@
             padding: 0; 
             color: #fff; 
             font-family: ui-sans-serif, system-ui, sans-serif; 
-            height: 100vh; 
+            height: 100dvh; 
             width: 100vw; 
             overflow: hidden; 
         }
@@ -66,6 +66,7 @@
             const [profiles, setProfiles] = useState([]);
             const [scanning, setScanning] = useState(false);
             const [result, setResult] = useState(null);
+            const [statusMessage, setStatusMessage] = useState(null);
             
             const videoRef = useRef(null);
             const streamRef = useRef(null);
@@ -88,6 +89,11 @@
                 const saved = localStorage.getItem(STORAGE_KEY);
                 if (saved) setProfiles(JSON.parse(saved));
             }, []);
+
+            const showMessage = (msg) => {
+                setStatusMessage(msg);
+                setTimeout(() => setStatusMessage(null), 3000);
+            };
 
             const startCam = async () => {
                 if (streamRef.current) stopCam();
@@ -146,18 +152,13 @@
                     }
 
                     const desc = Array.from(detect.descriptor);
-                    
-                    // Search for existing match in stored profiles
                     let match = profiles.find(p => calculateDistance(desc, p.descriptor) < SIMILARITY_THRESHOLD);
 
                     let finalIq;
                     if (match) {
                         finalIq = match.iq;
                     } else {
-                        // Generate random IQ within new range: 80 to 100
                         finalIq = Math.floor(Math.random() * (RANDOM_IQ_MAX - RANDOM_IQ_MIN + 1)) + RANDOM_IQ_MIN;
-                        
-                        // Auto-persist new face for subsequent scans
                         const newProfile = {
                             id: Date.now(),
                             iq: finalIq,
@@ -181,11 +182,12 @@
                 if (isNaN(val)) return;
 
                 const detect = await faceapi.detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
-                if (!detect) return alert("Biometric capture failed. Center face in guide.");
+                if (!detect) {
+                    showMessage("No face detected.");
+                    return;
+                }
                 
                 const desc = Array.from(detect.descriptor);
-                
-                // Remove existing auto-saved entries for this face to prevent duplicates
                 const filteredProfiles = profiles.filter(p => calculateDistance(desc, p.descriptor) >= SIMILARITY_THRESHOLD);
 
                 const newProfile = { 
@@ -202,6 +204,7 @@
                 
                 stopCam();
                 setView('admin-list');
+                showMessage(`Profile saved: IQ ${val}`);
             };
 
             const deleteProfile = (id) => {
@@ -212,7 +215,14 @@
 
             return (
                 <div className="flex flex-col h-full w-full bg-slate-950 select-none overflow-hidden">
-                    <header className="px-5 py-4 pt-[calc(var(--sat)+0.5rem)] border-b border-white/5 flex justify-between items-center bg-black/60 backdrop-blur-md z-30">
+                    {/* Status Notification Overlay */}
+                    {statusMessage && (
+                        <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-indigo-600 text-white px-6 py-2 rounded-full font-bold text-xs z-[100] shadow-xl animate-bounce">
+                            {statusMessage}
+                        </div>
+                    )}
+
+                    <header className="px-5 py-4 pt-[calc(var(--sat)+0.5rem)] border-b border-white/5 flex justify-between items-center bg-black/60 backdrop-blur-md z-30 shrink-0">
                         <span 
                             className="font-black text-indigo-500 tracking-tighter text-sm uppercase italic cursor-pointer"
                             onClick={() => { stopCam(); setView('home'); setResult(null); }}
@@ -232,7 +242,7 @@
                         </button>
                     </header>
 
-                    <main className="flex-1 relative bg-black overflow-hidden flex flex-col">
+                    <main className="flex-1 relative bg-black overflow-hidden flex flex-col min-h-0">
                         {view === 'home' && (
                             <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center z-20 bg-slate-950">
                                 <div className="w-20 h-20 bg-indigo-600/10 rounded-full flex items-center justify-center mb-8 border border-indigo-600/20">
@@ -243,7 +253,7 @@
                                 <button 
                                     onClick={() => { setView('scan'); startCam(); }} 
                                     disabled={!modelsLoaded} 
-                                    className="w-full max-w-sm py-5 bg-indigo-600 rounded-2xl font-black text-sm tracking-[0.2em] active:scale-95 transition-transform disabled:opacity-20"
+                                    className="w-full max-w-sm py-5 bg-indigo-600 rounded-2xl font-black text-sm tracking-[0.2em] active:scale-95 transition-transform disabled:opacity-20 shadow-lg"
                                 >
                                     {modelsLoaded ? 'INITIALIZE SCAN' : 'CALIBRATING...'}
                                 </button>
@@ -270,19 +280,19 @@
 
                         {view === 'admin-list' && (
                             <div className="flex-1 flex flex-col p-6 bg-slate-950 overflow-hidden">
-                                <div className="flex justify-between items-center mb-8">
+                                <div className="flex justify-between items-center mb-8 shrink-0">
                                     <h2 className="text-xl font-black uppercase tracking-tight">Biometric Registry</h2>
                                     <button 
                                         onClick={() => { setView('admin-cam'); startCam(); }}
-                                        className="bg-indigo-600 px-5 py-3 rounded-xl text-xs font-bold active:scale-95 flex items-center gap-2"
+                                        className="bg-indigo-600 px-5 py-3 rounded-xl text-xs font-bold active:scale-95"
                                     >
-                                        <i className="fa-solid fa-user-plus"></i> Manual Override
+                                        <i className="fa-solid fa-user-plus"></i> New
                                     </button>
                                 </div>
                                 
                                 <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1">
                                     {profiles.length === 0 ? (
-                                        <div className="h-full flex flex-col items-center justify-center text-slate-600 text-sm text-center border-2 border-dashed border-white/5 rounded-3xl">
+                                        <div className="h-full flex flex-col items-center justify-center text-slate-600 text-sm text-center border-2 border-dashed border-white/5 rounded-3xl p-10">
                                             No biometric signatures cached.
                                         </div>
                                     ) : (
@@ -298,7 +308,7 @@
                                                 </div>
                                                 <button 
                                                     onClick={() => deleteProfile(p.id)}
-                                                    className="w-10 h-10 flex items-center justify-center bg-red-500/10 text-red-500/60 rounded-xl hover:bg-red-500 hover:text-white transition-all active:scale-90"
+                                                    className="w-10 h-10 flex items-center justify-center bg-red-500/10 text-red-500/60 rounded-xl active:scale-90"
                                                 >
                                                     <i className="fa-solid fa-trash-can"></i>
                                                 </button>
@@ -309,7 +319,7 @@
 
                                 <button 
                                     onClick={() => { stopCam(); setView('home'); }}
-                                    className="mt-8 w-full py-5 bg-slate-900 border border-white/10 rounded-2xl text-xs font-black uppercase tracking-[0.2em] text-slate-400"
+                                    className="mt-8 w-full py-5 bg-slate-900 border border-white/10 rounded-2xl text-xs font-black uppercase tracking-[0.2em] text-slate-400 shrink-0"
                                 >
                                     Return to Terminal
                                 </button>
@@ -321,14 +331,14 @@
                                 <div className="flex-1 flex items-center justify-center p-12 pointer-events-none">
                                     <div className="w-full aspect-square border-2 border-dashed border-indigo-500/30 rounded-full"></div>
                                 </div>
-                                <div className="bg-black/95 backdrop-blur-2xl border-t border-white/10 p-8 pb-[calc(var(--sab)+2rem)]">
+                                <div className="bg-black/95 border-t border-white/10 p-8 pb-[calc(var(--sab)+2rem)] shrink-0">
                                     <div className="flex gap-4 mb-6">
                                         <div className="flex-1">
                                             <label className="text-[10px] uppercase font-black text-indigo-400 ml-1 mb-2 block tracking-widest">Manual Override IQ</label>
-                                            <input id="iq-val" type="number" defaultValue="131" className="w-full bg-slate-900 p-5 rounded-2xl border border-white/10 text-2xl font-black outline-none focus:border-indigo-500 transition-colors" />
+                                            <input id="iq-val" type="number" defaultValue="131" className="w-full bg-slate-900 p-5 rounded-2xl border border-white/10 text-2xl font-black outline-none focus:border-indigo-500" />
                                         </div>
                                         <div className="flex flex-col justify-end">
-                                            <button onClick={registerManualProfile} className="bg-indigo-600 px-8 py-5 rounded-2xl font-black active:scale-95 shadow-xl shadow-indigo-600/30">LOCK</button>
+                                            <button onClick={registerManualProfile} className="bg-indigo-600 px-8 py-5 rounded-2xl font-black active:scale-95">LOCK</button>
                                         </div>
                                     </div>
                                     <button onClick={() => { stopCam(); setView('admin-list'); }} className="w-full py-3 text-[10px] text-slate-600 uppercase tracking-[0.3em] font-black">Cancel</button>
@@ -337,22 +347,21 @@
                         )}
 
                         {result && (
-                            <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-12 text-center z-50">
+                            <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-12 text-center z-50 overflow-hidden">
                                 {result.error ? (
                                     <div className="text-red-400 font-bold p-8 bg-red-400/10 rounded-3xl border border-red-400/20 max-w-sm">{result.error}</div>
                                 ) : (
                                     <>
-                                        <div className="text-indigo-500 text-[10px] font-black tracking-[0.6em] uppercase mb-6">Biometric Result</div>
-                                        <div className="text-[11rem] font-black leading-none mb-4 tabular-nums text-white drop-shadow-[0_0_50px_rgba(99,102,241,0.5)]">{result.iq}</div>
-                                        <div className="text-slate-500 text-[10px] font-bold tracking-[0.4em] uppercase mb-20">Identity Profile Verified</div>
+                                        <div className="text-indigo-500 text-[10px] font-black tracking-[0.6em] uppercase mb-4">Biometric Result</div>
+                                        <div className="text-[clamp(6rem,20vh,11rem)] font-black leading-none mb-4 tabular-nums text-white drop-shadow-[0_0_50px_rgba(99,102,241,0.5)]">
+                                            {result.iq}
+                                        </div>
+                                        <div className="text-slate-500 text-[10px] font-bold tracking-[0.4em] uppercase mb-12">Identity Profile Verified</div>
                                     </>
                                 )}
                                 <button 
-                                    onClick={() => { 
-                                        setResult(null); 
-                                        startCam(); 
-                                    }} 
-                                    className="w-full max-w-sm py-5 bg-indigo-600 rounded-2xl font-black tracking-[0.3em] active:scale-95 shadow-2xl shadow-indigo-600/30"
+                                    onClick={() => { setResult(null); startCam(); }} 
+                                    className="w-full max-w-sm py-5 bg-indigo-600 rounded-2xl font-black tracking-[0.3em] active:scale-95 shrink-0"
                                 >
                                     RE-SCAN
                                 </button>
@@ -361,9 +370,9 @@
                     </main>
 
                     {view === 'scan' && !scanning && !result && (
-                        <footer className="p-6 bg-slate-950 border-t border-white/5 flex gap-4 pb-[calc(var(--sab)+1.5rem)] z-30">
+                        <footer className="p-6 bg-slate-950 border-t border-white/5 flex gap-4 pb-[calc(var(--sab)+1.5rem)] z-30 shrink-0">
                             <button onClick={() => { stopCam(); setView('home'); }} className="flex-1 py-5 bg-slate-900 rounded-2xl text-[10px] font-black tracking-widest border border-white/10 uppercase">Abort</button>
-                            <button onClick={handleScan} className="flex-[3] py-5 bg-indigo-600 rounded-2xl font-black text-sm tracking-[0.2em] shadow-xl shadow-indigo-600/30 uppercase">Scan Identity</button>
+                            <button onClick={handleScan} className="flex-[3] py-5 bg-indigo-600 rounded-2xl font-black text-sm tracking-[0.2em] uppercase shadow-lg shadow-indigo-600/20">Scan Identity</button>
                         </footer>
                     )}
                 </div>
@@ -375,4 +384,3 @@
     </script>
 </body>
 </html>
-// gemini-code-apply: end
