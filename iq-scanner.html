@@ -6,106 +6,115 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>BioScanner Pro</title>
+    <title>BioScanner IQ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <style>
-        @keyframes scan {
-            0% { top: 0%; opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { top: 100%; opacity: 0; }
-        }
-        .animate-scan {
-            position: absolute;
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(to bottom, transparent, #6366f1);
-            box-shadow: 0 0 15px #6366f1;
-            animation: scan 2s ease-in-out infinite;
+        :root { 
+            --sat: env(safe-area-inset-top); 
+            --sab: env(safe-area-inset-bottom); 
         }
         body { 
-            background-color: #020617; 
-            color: #f8fafc; 
-            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; 
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            height: 100vh;
-            width: 100vw;
+            background: #000; 
+            margin: 0; 
+            padding: 0; 
+            color: #fff; 
+            font-family: ui-sans-serif, system-ui, sans-serif; 
+            height: 100vh; 
+            width: 100vw; 
+            overflow: hidden; 
         }
-        .safe-top { padding-top: env(safe-area-inset-top); }
-        .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
-        .no-select { user-select: none; -webkit-tap-highlight-color: transparent; }
+        #root { height: 100%; width: 100%; }
+        @keyframes scanline { 
+            0% { top: 0%; opacity: 0; } 
+            10% { opacity: 1; } 
+            90% { opacity: 1; } 
+            100% { top: 100%; opacity: 0; } 
+        }
+        .scanner-line {
+            position: absolute; 
+            width: 100%; 
+            height: 3px;
+            background: #6366f1; 
+            box-shadow: 0 0 20px #6366f1;
+            animation: scanline 2.5s ease-in-out infinite;
+            z-index: 10;
+        }
+        .no-tap { -webkit-tap-highlight-color: transparent; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #4338ca; border-radius: 10px; }
     </style>
 </head>
-<body class="no-select">
+<body class="no-tap">
     <div id="root"></div>
-
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        const STORAGE_KEY = 'BIOMETRIC_IQ_PROFILES';
-        const MATCH_THRESHOLD = 0.45;
-        const RANGE_MIN = 85;
-        const RANGE_MAX = 110;
+        const STORAGE_KEY = 'IQ_SCANNER_PROFILES_V6';
+        const SIMILARITY_THRESHOLD = 0.45;
+        const RANDOM_IQ_MIN = 80;
+        const RANDOM_IQ_MAX = 100;
 
         const App = () => {
-            const [mode, setMode] = useState('home'); 
-            const [isReady, setIsReady] = useState(false);
+            const [view, setView] = useState('home'); 
+            const [modelsLoaded, setModelsLoaded] = useState(false);
             const [profiles, setProfiles] = useState([]);
-            const [isScanning, setIsScanning] = useState(false);
-            const [scanResult, setScanResult] = useState(null);
-            const [error, setError] = useState(null);
-
+            const [scanning, setScanning] = useState(false);
+            const [result, setResult] = useState(null);
+            
             const videoRef = useRef(null);
             const streamRef = useRef(null);
 
             useEffect(() => {
-                const loadModels = async () => {
+                const load = async () => {
+                    const URL = 'https://justadudewhohacks.github.io/face-api.js/models';
                     try {
-                        const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
                         await Promise.all([
-                            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-                            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                            faceapi.nets.tinyFaceDetector.loadFromUri(URL),
+                            faceapi.nets.faceLandmark68Net.loadFromUri(URL),
+                            faceapi.nets.faceRecognitionNet.loadFromUri(URL)
                         ]);
-                        setIsReady(true);
-                    } catch (e) {
-                        setError("AI Engine error. Check HTTPS connection.");
+                        setModelsLoaded(true);
+                    } catch (e) { 
+                        console.error("AI Model Load Failed:", e); 
                     }
                 };
-                loadModels();
-
+                load();
                 const saved = localStorage.getItem(STORAGE_KEY);
                 if (saved) setProfiles(JSON.parse(saved));
-
-                return () => stopCamera();
             }, []);
 
-            const startCamera = async () => {
-                stopCamera();
+            const startCam = async () => {
+                if (streamRef.current) stopCam();
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } 
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { 
+                            facingMode: 'user', 
+                            width: { ideal: 1280 }, 
+                            height: { ideal: 720 } 
+                        }
                     });
-                    if (videoRef.current) videoRef.current.srcObject = stream;
                     streamRef.current = stream;
-                } catch (e) {
-                    setError("Camera permissions required.");
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = stream;
+                    }
+                } catch (e) { 
+                    console.error("Camera access failed:", e);
                 }
             };
 
-            const stopCamera = () => {
+            const stopCam = () => {
                 if (streamRef.current) {
-                    streamRef.current.getTracks().forEach(track => track.stop());
+                    streamRef.current.getTracks().forEach(t => t.stop());
                     streamRef.current = null;
+                }
+                if (videoRef.current) {
+                    videoRef.current.srcObject = null;
                 }
             };
 
@@ -113,179 +122,249 @@
                 return Math.sqrt(v1.reduce((acc, val, i) => acc + Math.pow(val - v2[i], 2), 0));
             };
 
-            const executeScan = async () => {
-                if (!isReady || !videoRef.current) return;
-                setIsScanning(true);
-                setScanResult(null);
-
+            const handleScan = async () => {
+                if (!streamRef.current) await startCam();
+                
+                setScanning(true);
+                setResult(null);
+                
                 setTimeout(async () => {
-                    const detection = await faceapi.detectSingleFace(
+                    if (!videoRef.current) {
+                        setScanning(false);
+                        return;
+                    }
+
+                    const detect = await faceapi.detectSingleFace(
                         videoRef.current, 
                         new faceapi.TinyFaceDetectorOptions()
                     ).withFaceLandmarks().withFaceDescriptor();
                     
-                    if (!detection) {
-                        setScanResult({ error: "No target detected." });
-                        setIsScanning(false);
+                    if (!detect) {
+                        setResult({ error: "Biometric capture failed. Align face in viewfinder." });
+                        setScanning(false);
                         return;
                     }
 
-                    const currentDescriptor = Array.from(detection.descriptor);
-                    let matchedIq = null;
-                    let bestDistance = Infinity;
+                    const desc = Array.from(detect.descriptor);
+                    
+                    // Search for existing match in stored profiles
+                    let match = profiles.find(p => calculateDistance(desc, p.descriptor) < SIMILARITY_THRESHOLD);
 
-                    profiles.forEach(profile => {
-                        const dist = calculateDistance(currentDescriptor, profile.descriptor);
-                        if (dist < MATCH_THRESHOLD && dist < bestDistance) {
-                            bestDistance = dist;
-                            matchedIq = profile.iq;
-                        }
-                    });
+                    let finalIq;
+                    if (match) {
+                        finalIq = match.iq;
+                    } else {
+                        // Generate random IQ within new range: 80 to 100
+                        finalIq = Math.floor(Math.random() * (RANDOM_IQ_MAX - RANDOM_IQ_MIN + 1)) + RANDOM_IQ_MIN;
+                        
+                        // Auto-persist new face for subsequent scans
+                        const newProfile = {
+                            id: Date.now(),
+                            iq: finalIq,
+                            descriptor: desc,
+                            date: new Date().toLocaleDateString(),
+                            type: 'Auto'
+                        };
+                        const updated = [...profiles, newProfile];
+                        setProfiles(updated);
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+                    }
 
-                    const finalIq = matchedIq || Math.floor(Math.random() * (RANGE_MAX - RANGE_MIN + 1)) + RANGE_MIN;
-                    setScanResult({ iq: finalIq, recognized: !!matchedIq });
-                    setIsScanning(false);
-                }, 2200);
+                    setResult({ iq: finalIq });
+                    setScanning(false);
+                }, 2500);
             };
 
-            const addProfile = async () => {
-                const iqInput = document.getElementById('target-iq');
-                const iqValue = parseInt(iqInput.value);
+            const registerManualProfile = async () => {
+                const iqInput = document.getElementById('iq-val');
+                const val = parseInt(iqInput.value);
+                if (isNaN(val)) return;
+
+                const detect = await faceapi.detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+                if (!detect) return alert("Biometric capture failed. Center face in guide.");
                 
-                if (!videoRef.current || isNaN(iqValue)) return;
+                const desc = Array.from(detect.descriptor);
+                
+                // Remove existing auto-saved entries for this face to prevent duplicates
+                const filteredProfiles = profiles.filter(p => calculateDistance(desc, p.descriptor) >= SIMILARITY_THRESHOLD);
 
-                const detection = await faceapi.detectSingleFace(
-                    videoRef.current, 
-                    new faceapi.TinyFaceDetectorOptions()
-                ).withFaceLandmarks().withFaceDescriptor();
-
-                if (!detection) {
-                    alert("Face not detected. Ensure direct eye contact.");
-                    return;
-                }
-
-                const newProfile = {
-                    timestamp: Date.now(),
-                    iq: iqValue,
-                    descriptor: Array.from(detection.descriptor)
+                const newProfile = { 
+                    id: Date.now(), 
+                    iq: val, 
+                    descriptor: desc,
+                    date: new Date().toLocaleDateString(),
+                    type: 'Manual'
                 };
-
-                const updated = [...profiles, newProfile];
+                
+                const updated = [...filteredProfiles, newProfile];
                 setProfiles(updated);
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-                alert(`Subject identity locked at IQ ${iqValue}`);
+                
+                stopCam();
+                setView('admin-list');
             };
 
-            const purgeProfiles = () => {
-                if (confirm("Purge all biometric databases?")) {
-                    setProfiles([]);
-                    localStorage.removeItem(STORAGE_KEY);
-                }
+            const deleteProfile = (id) => {
+                const updated = profiles.filter(p => p.id !== id);
+                setProfiles(updated);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
             };
-
-            if (error) return (
-                <div className="h-screen flex items-center justify-center p-12 text-center bg-slate-950">
-                    <div className="text-red-500 font-mono tracking-tighter uppercase">
-                        <i className="fa-solid fa-triangle-exclamation text-4xl mb-4"></i>
-                        <div className="text-xl">{error}</div>
-                    </div>
-                </div>
-            );
 
             return (
-                <div className="flex flex-col h-screen w-screen bg-slate-950 overflow-hidden relative">
-                    {/* Stealth Admin Access */}
-                    <button 
-                        onClick={() => { setMode(mode === 'admin' ? 'home' : 'admin'); startCamera(); }}
-                        className="absolute top-4 right-4 z-[100] opacity-10 p-4 safe-top"
-                    >
-                        <i className="fa-solid fa-fingerprint text-white text-xl"></i>
-                    </button>
-
-                    <header className="p-6 safe-top text-center bg-slate-900/40 border-b border-white/5">
-                        <div className="inline-block px-3 py-1 border border-indigo-500/30 rounded text-[10px] tracking-[0.4em] font-bold text-indigo-400">
-                            BIO-METRIC SCANNER 2.0
-                        </div>
+                <div className="flex flex-col h-full w-full bg-slate-950 select-none overflow-hidden">
+                    <header className="px-5 py-4 pt-[calc(var(--sat)+0.5rem)] border-b border-white/5 flex justify-between items-center bg-black/60 backdrop-blur-md z-30">
+                        <span 
+                            className="font-black text-indigo-500 tracking-tighter text-sm uppercase italic cursor-pointer"
+                            onClick={() => { stopCam(); setView('home'); setResult(null); }}
+                        >
+                            BioScanner <span className="text-white not-italic opacity-40">PRO</span>
+                        </span>
+                        <button 
+                            onClick={() => { 
+                                stopCam();
+                                setResult(null);
+                                setScanning(false);
+                                setView(view.startsWith('admin') ? 'home' : 'admin-list');
+                            }} 
+                            className="p-2 opacity-10 active:opacity-100"
+                        >
+                            <i className="fa-solid fa-sliders text-lg"></i>
+                        </button>
                     </header>
 
-                    <div className="flex-1 relative bg-black overflow-hidden">
-                        {mode === 'home' && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center p-10 text-center">
-                                <div className="relative mb-8">
-                                    <i className="fa-solid fa-face-viewfinder text-7xl text-indigo-600 animate-pulse"></i>
-                                    <div className="absolute inset-0 bg-indigo-500/20 blur-xl rounded-full"></div>
+                    <main className="flex-1 relative bg-black overflow-hidden flex flex-col">
+                        {view === 'home' && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center z-20 bg-slate-950">
+                                <div className="w-20 h-20 bg-indigo-600/10 rounded-full flex items-center justify-center mb-8 border border-indigo-600/20">
+                                    <i className="fa-solid fa-dna text-3xl text-indigo-500"></i>
                                 </div>
-                                <h1 className="text-3xl font-black mb-4 tracking-tight">SYSTEM STANDBY</h1>
-                                <p className="text-slate-400 text-sm mb-12 max-w-xs">Target identification required for neural cognitive assessment.</p>
+                                <h1 className="text-2xl font-black mb-3 uppercase tracking-widest">System Ready</h1>
+                                <p className="text-slate-500 text-sm mb-12 leading-relaxed">Persistent biometric database active. Awaiting target acquisition.</p>
                                 <button 
-                                    onClick={() => { setMode('scanning'); startCamera(); }} 
-                                    disabled={!isReady} 
-                                    className="w-full max-w-sm py-5 bg-indigo-600 rounded-2xl font-black text-lg active:scale-95 transition-transform disabled:opacity-20 shadow-2xl shadow-indigo-500/40"
+                                    onClick={() => { setView('scan'); startCam(); }} 
+                                    disabled={!modelsLoaded} 
+                                    className="w-full max-w-sm py-5 bg-indigo-600 rounded-2xl font-black text-sm tracking-[0.2em] active:scale-95 transition-transform disabled:opacity-20"
                                 >
-                                    {isReady ? 'INITIATE SCAN' : 'CALIBRATING AI...'}
+                                    {modelsLoaded ? 'INITIALIZE SCAN' : 'CALIBRATING...'}
                                 </button>
                             </div>
                         )}
 
-                        {(mode === 'scanning' || mode === 'admin') && (
-                            <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover grayscale contrast-125 brightness-75" />
+                        {(view === 'scan' || view === 'admin-cam') && (
+                            <video 
+                                ref={videoRef} 
+                                autoPlay 
+                                muted 
+                                playsInline 
+                                className="absolute inset-0 w-full h-full object-cover"
+                            />
                         )}
 
-                        {mode === 'scanning' && (
-                            <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
-                                <div className="w-72 h-72 border-2 border-indigo-500/40 rounded-[3rem] relative overflow-hidden">
-                                    <div className="absolute inset-0 bg-indigo-500/5"></div>
-                                    {isScanning && <div className="animate-scan"></div>}
-                                </div>
-                                <div className="mt-12 bg-black/80 px-6 py-2 rounded-full border border-indigo-500/20 backdrop-blur-md">
-                                    <span className="text-[10px] font-mono text-indigo-400 tracking-[0.3em] uppercase">
-                                        {isScanning ? 'Mapping Neural Topology...' : 'Awaiting Target Lock'}
-                                    </span>
+                        {view === 'scan' && (
+                            <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-10">
+                                <div className="w-full aspect-[3/4] border border-indigo-500/30 rounded-[3rem] relative overflow-hidden bg-indigo-600/5">
+                                    {scanning && <div className="scanner-line"></div>}
                                 </div>
                             </div>
                         )}
 
-                        {mode === 'admin' && (
-                            <div className="absolute bottom-0 inset-x-0 p-8 pb-12 bg-slate-900/95 backdrop-blur-xl border-t border-white/10 safe-bottom">
-                                <div className="text-xs font-bold text-slate-500 mb-4 tracking-widest uppercase flex justify-between">
-                                    <span>Identity Management</span>
-                                    <span>{profiles.length} Profiles</span>
+                        {view === 'admin-list' && (
+                            <div className="flex-1 flex flex-col p-6 bg-slate-950 overflow-hidden">
+                                <div className="flex justify-between items-center mb-8">
+                                    <h2 className="text-xl font-black uppercase tracking-tight">Biometric Registry</h2>
+                                    <button 
+                                        onClick={() => { setView('admin-cam'); startCam(); }}
+                                        className="bg-indigo-600 px-5 py-3 rounded-xl text-xs font-bold active:scale-95 flex items-center gap-2"
+                                    >
+                                        <i className="fa-solid fa-user-plus"></i> Manual Override
+                                    </button>
                                 </div>
-                                <div className="flex gap-3 mb-6">
-                                    <input id="target-iq" type="number" defaultValue="131" className="flex-1 bg-black rounded-xl px-4 py-4 text-base font-bold border border-white/10 outline-none focus:border-indigo-500" />
-                                    <button onClick={addProfile} className="bg-indigo-600 px-8 rounded-xl font-bold text-sm active:scale-95">REGISTER</button>
+                                
+                                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1">
+                                    {profiles.length === 0 ? (
+                                        <div className="h-full flex flex-col items-center justify-center text-slate-600 text-sm text-center border-2 border-dashed border-white/5 rounded-3xl">
+                                            No biometric signatures cached.
+                                        </div>
+                                    ) : (
+                                        profiles.map(p => (
+                                            <div key={p.id} className="bg-white/5 border border-white/5 p-5 rounded-2xl flex justify-between items-center">
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <div className={`w-1.5 h-1.5 rounded-full ${p.type === 'Manual' ? 'bg-indigo-400' : 'bg-slate-500'}`}></div>
+                                                        <div className="text-[10px] text-slate-400 font-bold tracking-[0.2em] uppercase">{p.type === 'Manual' ? 'Calibrated' : 'Auto-Cached'}</div>
+                                                    </div>
+                                                    <div className="text-2xl font-black tracking-tight">IQ: {p.iq}</div>
+                                                    <div className="text-[9px] text-slate-600 font-mono mt-1 uppercase">Date: {p.date}</div>
+                                                </div>
+                                                <button 
+                                                    onClick={() => deleteProfile(p.id)}
+                                                    className="w-10 h-10 flex items-center justify-center bg-red-500/10 text-red-500/60 rounded-xl hover:bg-red-500 hover:text-white transition-all active:scale-90"
+                                                >
+                                                    <i className="fa-solid fa-trash-can"></i>
+                                                </button>
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
-                                <button onClick={purgeProfiles} className="w-full text-[10px] text-slate-600 uppercase tracking-widest py-2">Purge Local Datastore</button>
+
+                                <button 
+                                    onClick={() => { stopCam(); setView('home'); }}
+                                    className="mt-8 w-full py-5 bg-slate-900 border border-white/10 rounded-2xl text-xs font-black uppercase tracking-[0.2em] text-slate-400"
+                                >
+                                    Return to Terminal
+                                </button>
                             </div>
                         )}
-                    </div>
 
-                    {scanResult && (
-                        <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-12 z-[200]">
-                            {scanResult.error ? (
-                                <p className="text-red-400 font-bold mb-8">{scanResult.error}</p>
-                            ) : (
-                                <>
-                                    <div className="text-[10px] tracking-[0.6em] text-indigo-400 font-bold uppercase mb-6">Biometric Report Locked</div>
-                                    <div className="text-[10rem] font-black leading-none mb-4 tabular-nums tracking-tighter text-white drop-shadow-[0_0_30px_rgba(99,102,241,0.3)]">
-                                        {scanResult.iq}
+                        {view === 'admin-cam' && (
+                            <div className="absolute inset-0 flex flex-col">
+                                <div className="flex-1 flex items-center justify-center p-12 pointer-events-none">
+                                    <div className="w-full aspect-square border-2 border-dashed border-indigo-500/30 rounded-full"></div>
+                                </div>
+                                <div className="bg-black/95 backdrop-blur-2xl border-t border-white/10 p-8 pb-[calc(var(--sab)+2rem)]">
+                                    <div className="flex gap-4 mb-6">
+                                        <div className="flex-1">
+                                            <label className="text-[10px] uppercase font-black text-indigo-400 ml-1 mb-2 block tracking-widest">Manual Override IQ</label>
+                                            <input id="iq-val" type="number" defaultValue="131" className="w-full bg-slate-900 p-5 rounded-2xl border border-white/10 text-2xl font-black outline-none focus:border-indigo-500 transition-colors" />
+                                        </div>
+                                        <div className="flex flex-col justify-end">
+                                            <button onClick={registerManualProfile} className="bg-indigo-600 px-8 py-5 rounded-2xl font-black active:scale-95 shadow-xl shadow-indigo-600/30">LOCK</button>
+                                        </div>
                                     </div>
-                                    <div className="text-slate-400 font-bold tracking-widest mb-16 uppercase text-xs">Intelligence Quotient</div>
-                                    <div className="w-full grid grid-cols-2 gap-4 text-[10px] font-mono mb-12">
-                                        <div className="p-4 bg-white/5 rounded-xl border border-white/5">TYPE: {scanResult.recognized ? 'PRIMARY' : 'GUEST'}</div>
-                                        <div className="p-4 bg-white/5 rounded-xl border border-white/5">CONF: 99.98%</div>
-                                    </div>
-                                </>
-                            )}
-                            <button onClick={() => setScanResult(null)} className="w-full max-w-sm py-5 bg-indigo-600 rounded-2xl font-black shadow-lg shadow-indigo-500/40">CLOSE TERMINAL</button>
-                        </div>
-                    )}
+                                    <button onClick={() => { stopCam(); setView('admin-list'); }} className="w-full py-3 text-[10px] text-slate-600 uppercase tracking-[0.3em] font-black">Cancel</button>
+                                </div>
+                            </div>
+                        )}
 
-                    {mode === 'scanning' && !isScanning && !scanResult && (
-                        <div className="p-8 bg-slate-950 flex gap-4 safe-bottom">
-                            <button onClick={() => { setMode('home'); stopCamera(); }} className="flex-1 py-5 bg-slate-900 rounded-2xl text-xs font-bold border border-white/5">ABORT</button>
-                            <button onClick={executeScan} className="flex-[2] py-5 bg-indigo-600 rounded-2xl text-sm font-black tracking-[0.2em] shadow-xl shadow-indigo-500/30 uppercase">Scan Subject</button>
-                        </div>
+                        {result && (
+                            <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-12 text-center z-50">
+                                {result.error ? (
+                                    <div className="text-red-400 font-bold p-8 bg-red-400/10 rounded-3xl border border-red-400/20 max-w-sm">{result.error}</div>
+                                ) : (
+                                    <>
+                                        <div className="text-indigo-500 text-[10px] font-black tracking-[0.6em] uppercase mb-6">Biometric Result</div>
+                                        <div className="text-[11rem] font-black leading-none mb-4 tabular-nums text-white drop-shadow-[0_0_50px_rgba(99,102,241,0.5)]">{result.iq}</div>
+                                        <div className="text-slate-500 text-[10px] font-bold tracking-[0.4em] uppercase mb-20">Identity Profile Verified</div>
+                                    </>
+                                )}
+                                <button 
+                                    onClick={() => { 
+                                        setResult(null); 
+                                        startCam(); 
+                                    }} 
+                                    className="w-full max-w-sm py-5 bg-indigo-600 rounded-2xl font-black tracking-[0.3em] active:scale-95 shadow-2xl shadow-indigo-600/30"
+                                >
+                                    RE-SCAN
+                                </button>
+                            </div>
+                        )}
+                    </main>
+
+                    {view === 'scan' && !scanning && !result && (
+                        <footer className="p-6 bg-slate-950 border-t border-white/5 flex gap-4 pb-[calc(var(--sab)+1.5rem)] z-30">
+                            <button onClick={() => { stopCam(); setView('home'); }} className="flex-1 py-5 bg-slate-900 rounded-2xl text-[10px] font-black tracking-widest border border-white/10 uppercase">Abort</button>
+                            <button onClick={handleScan} className="flex-[3] py-5 bg-indigo-600 rounded-2xl font-black text-sm tracking-[0.2em] shadow-xl shadow-indigo-600/30 uppercase">Scan Identity</button>
+                        </footer>
                     )}
                 </div>
             );
@@ -296,3 +375,4 @@
     </script>
 </body>
 </html>
+// gemini-code-apply: end
