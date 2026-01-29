@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Structural Engineering & Systemic Integrity</title>
+    <title>Structural Engineering & Systemic Stewardship</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -43,9 +43,7 @@
             transition: all 0.3s ease;
         }
 
-        .glass-card:hover {
-            border-color: var(--accent);
-        }
+        .glass-card:hover { border-color: var(--accent); }
 
         .gradient-text {
             background: linear-gradient(135deg, #22d3ee 0%, #3b82f6 100%);
@@ -64,20 +62,18 @@
             margin-top: 1rem;
         }
 
-        .graph-line {
-            stroke-dasharray: 1000;
-            stroke-dashoffset: 1000;
-            animation: draw 2.5s forwards ease-in-out;
-        }
-
-        @keyframes draw {
-            to { stroke-dashoffset: 0; }
-        }
-
         .dot-grid {
             background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
             background-size: 32px 32px;
         }
+        
+        .sfia-bar {
+            transition: height 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th { text-align: left; font-size: 0.75rem; color: #64748b; text-transform: uppercase; padding: 0.75rem; border-bottom: 1px solid var(--border); }
+        td { padding: 0.75rem; font-size: 0.875rem; border-bottom: 1px solid var(--border); }
     </style>
 </head>
 <body class="dot-grid selection:bg-cyan-500/30">
@@ -86,40 +82,40 @@
     <header class="min-h-screen flex flex-col justify-center items-center px-6 text-center">
         <div class="max-w-5xl space-y-8 reveal">
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold tracking-widest uppercase mb-4">
-                <i data-lucide="shield-check" class="w-3 h-3"></i> IEEE / ISO Technical Standard 
+                <i data-lucide="shield-check" class="w-3 h-3"></i> IEEE / SFIA Framework Standard 
             </div>
             <h1 class="text-6xl md:text-8xl font-extrabold tracking-tighter text-white">
                 Structural <br><span class="gradient-text">Engineering.</span>
             </h1>
             <p class="text-xl md:text-2xl text-slate-400 font-light leading-relaxed max-w-3xl mx-auto">
-                An objective analysis of systemic complexity, specialized disciplines, and the multi-decade trajectory of technical stewardship.
+                A technical analysis of domain specialization, systemic complexity, and the 20-year trajectory of engineering mastery.
             </p>
             <div class="pt-12">
                 <a href="#definition" class="inline-flex items-center gap-3 text-cyan-400 font-semibold hover:text-cyan-300 transition-all group">
-                    <span class="uppercase tracking-widest text-xs">Examine the Evidence</span>
+                    <span class="uppercase tracking-widest text-xs">Analyze the Evidence</span>
                     <i data-lucide="arrow-down" class="w-4 h-4 group-hover:translate-y-1 transition-transform"></i>
                 </a>
             </div>
         </div>
     </header>
 
-    <!-- Essential Complexity -->
+    <!-- Essential Complexity & Tesler's Law -->
     <section id="definition" class="py-32 px-6 max-w-6xl mx-auto">
         <div class="grid lg:grid-cols-2 gap-20 items-start">
             <div class="reveal">
                 <h2 class="text-3xl font-bold mb-8 flex items-center gap-3">
                     <i data-lucide="book-open" class="text-cyan-400"></i>
-                    Essential Complexity
+                    The Nature of Complexity
                 </h2>
                 <div class="space-y-6 text-slate-300 text-lg leading-relaxed">
                     <p>
-                        Software Engineering is the application of a systematic, disciplined approach to the development and maintenance of complex digital logic.
+                        Engineering is the management of <span class="text-white font-semibold">Essential Complexity</span>—the inherent logic of the problem.
                     </p>
                     <p>
-                        We distinguish between <span class="text-white font-semibold">Accidental Complexity</span> (difficulties caused by tooling) and <span class="text-white font-semibold">Essential Complexity</span> (the inherent logic of the problem). 
+                        <span class="text-white font-semibold">Tesler’s Law</span> (Conservation of Complexity) states that every application has a certain amount of complexity that cannot be removed. If the user experience is made simpler, that complexity is necessarily shifted into the engineering layers.
                     </p>
                     <div class="citation">
-                        Ref: Fred Brooks, "No Silver Bullet: Essence and Accidents of Software Engineering" (IEEE Computer Society).
+                        Ref: Larry Tesler / Fred Brooks, "No Silver Bullet" (IEEE).
                     </div>
                 </div>
             </div>
@@ -127,7 +123,7 @@
                 <div class="grid grid-cols-2 gap-8">
                     <div class="space-y-2">
                         <div class="text-cyan-400 font-mono text-xs font-bold uppercase tracking-widest">Determinism</div>
-                        <p class="text-xs text-slate-400">Consistent behavior across asynchronous, multi-threaded environments.</p>
+                        <p class="text-xs text-slate-400">Consistent behavior across asynchronous environments.</p>
                     </div>
                     <div class="space-y-2">
                         <div class="text-cyan-400 font-mono text-xs font-bold uppercase tracking-widest">State Space</div>
@@ -138,197 +134,237 @@
                         <p class="text-xs text-slate-400">Enforcing persistence and semantic consistency across nodes.</p>
                     </div>
                     <div class="space-y-2">
-                        <div class="text-cyan-400 font-mono text-xs font-bold uppercase tracking-widest">Resilience</div>
-                        <p class="text-xs text-slate-400">Graceful recovery from partial component or network failure.</p>
+                        <div class="text-cyan-400 font-mono text-xs font-bold uppercase tracking-widest">Cognitive Load</div>
+                        <p class="text-xs text-slate-400">Managing mental models of the system mesh (WMC constraint).</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Cognitive Load Section -->
-    <section class="py-32 bg-slate-900/40 border-y border-white/5 px-6">
-        <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-20 items-center">
-            <div class="reveal order-2 lg:order-1 glass-card p-10 rounded-3xl">
-                <div class="space-y-8">
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-xs mono uppercase text-slate-400"><span>Intrinsic Load (Syntax/Basics)</span><span>15%</span></div>
-                        <div class="w-full bg-slate-800 h-1.5 rounded-full"><div class="bg-blue-500 h-full w-[15%]"></div></div>
-                    </div>
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-xs mono uppercase text-slate-400"><span>Extraneous Load (Process/Noise)</span><span>25%</span></div>
-                        <div class="w-full bg-slate-800 h-1.5 rounded-full"><div class="bg-amber-500 h-full w-[25%]"></div></div>
-                    </div>
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-xs mono uppercase text-slate-400"><span>Germane Load (Systemic Logic)</span><span>60%</span></div>
-                        <div class="w-full bg-slate-800 h-1.5 rounded-full"><div class="bg-cyan-500 h-full w-[60%]"></div></div>
-                    </div>
-                </div>
-                <p class="mt-8 text-xs text-slate-500 italic">Engineering productivity is limited by Working Memory Capacity (WMC). Mastery is the ability to manage higher systemic abstraction.</p>
-            </div>
-            <div class="reveal order-1 lg:order-2">
-                <h2 class="text-sm font-bold uppercase tracking-[0.2em] text-cyan-500 mb-4">The Human Constraint</h2>
-                <h3 class="text-4xl font-bold mb-6">Cognitive Load Theory</h3>
-                <p class="text-lg text-slate-300 mb-8 leading-relaxed">
-                    Engineering is the management of a mental model. An engineer must maintain a simulation of disparate services, persistence schemas, and API contracts in active memory to execute a single "simple" change safely.
+    <!-- SFIA Maturity Curve -->
+    <section id="sfia" class="py-32 bg-slate-900/40 border-y border-white/5 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 reveal">
+                <h2 class="text-sm font-bold uppercase tracking-[0.2em] text-cyan-500 mb-4">The Maturity Curve</h2>
+                <h3 class="text-4xl font-bold mb-6">SFIA Progression Timeline</h3>
+                <p class="text-slate-400 max-w-2xl mx-auto">
+                    Engineering competence is a trajectory from rule-following to strategic stewardship. Professional standards indicate a multi-decade journey to reach systemic mastery.
                 </p>
-                <div class="citation">
-                    Ref: John Sweller, "Cognitive Load Theory" / Dr. Felienne Hermans, "The Programmer's Brain."
+            </div>
+
+            <div class="reveal glass-card p-12 rounded-3xl relative overflow-visible">
+                <div class="h-[450px] w-full flex items-end gap-2 md:gap-4 relative pt-20 border-b border-slate-800">
+                    <div class="flex-1 flex flex-col items-center group">
+                        <div class="w-full bg-slate-800 rounded-t-lg relative sfia-bar" style="height: 14%">
+                            <div class="absolute -top-12 left-0 right-0 text-center text-[10px] mono text-slate-500">YEAR 0-1</div>
+                        </div>
+                        <span class="mt-4 text-[10px] font-bold text-slate-500 text-center">L1<br>FOLLOW</span>
+                    </div>
+                    <div class="flex-1 flex flex-col items-center group">
+                        <div class="w-full bg-slate-700 rounded-t-lg relative sfia-bar" style="height: 28%">
+                            <div class="absolute -top-12 left-0 right-0 text-center text-[10px] mono text-slate-500">YEAR 1-2</div>
+                        </div>
+                        <span class="mt-4 text-[10px] font-bold text-slate-500 text-center">L2<br>ASSIST</span>
+                    </div>
+                    <div class="flex-1 flex flex-col items-center group">
+                        <div class="w-full bg-cyan-900/40 rounded-t-lg relative sfia-bar" style="height: 42%">
+                            <div class="absolute -top-12 left-0 right-0 text-center text-[10px] mono text-slate-400">YEAR 2-5</div>
+                        </div>
+                        <span class="mt-4 text-[10px] font-bold text-slate-400 text-center">L3<br>APPLY</span>
+                    </div>
+                    <div class="flex-1 flex flex-col items-center group">
+                        <div class="w-full bg-cyan-700/60 rounded-t-lg relative sfia-bar" style="height: 57%">
+                            <div class="absolute -top-12 left-0 right-0 text-center text-[10px] mono text-cyan-500">YEAR 5-8</div>
+                        </div>
+                        <span class="mt-4 text-[10px] font-bold text-cyan-500 text-center">L4<br>ENABLE</span>
+                    </div>
+                    <div class="flex-1 flex flex-col items-center group">
+                        <div class="w-full bg-cyan-600 rounded-t-lg relative sfia-bar" style="height: 71%">
+                            <div class="absolute -top-12 left-0 right-0 text-center text-[10px] mono text-cyan-400">YEAR 8-12</div>
+                        </div>
+                        <span class="mt-4 text-[10px] font-bold text-cyan-400 text-center">L5<br>ENSURE</span>
+                    </div>
+                    <div class="flex-1 flex flex-col items-center group">
+                        <div class="w-full bg-cyan-500 rounded-t-lg relative sfia-bar" style="height: 85%">
+                            <div class="absolute -top-12 left-0 right-0 text-center text-[10px] mono text-cyan-300">YEAR 12-18</div>
+                        </div>
+                        <span class="mt-4 text-[10px] font-bold text-cyan-300 text-center">L6<br>INFLUENCE</span>
+                    </div>
+                    <div class="flex-1 flex flex-col items-center group">
+                        <div class="w-full bg-gradient-to-t from-cyan-600 to-blue-400 rounded-t-lg relative sfia-bar" style="height: 100%">
+                            <div class="absolute -top-12 left-0 right-0 text-center text-[10px] mono text-white">YEAR 18+</div>
+                        </div>
+                        <span class="mt-4 text-[10px] font-bold text-white text-center">L7<br>STEWARD</span>
+                    </div>
                 </div>
+                
+                <div class="mt-16 grid md:grid-cols-2 gap-12 text-sm">
+                    <div class="space-y-4">
+                        <h4 class="font-bold text-cyan-400 uppercase tracking-widest text-xs">Functional Development (L1-L3)</h4>
+                        <p class="text-slate-400">Syntactic execution and rule-based problem solving. Work is supervised and contained within isolated components.</p>
+                    </div>
+                    <div class="space-y-4">
+                        <h4 class="font-bold text-white uppercase tracking-widest text-xs">Systemic Stewardship (L5-L7)</h4>
+                        <p class="text-slate-400">Stewardship of technical integrity, risk mitigation, and long-term evolution. Mastery involves identifying second-order effects invisible to novices.</p>
+                    </div>
+                </div>
+                <div class="citation mt-8">Source: SFIA v8 Framework (Skills Framework for the Information Age).</div>
             </div>
         </div>
     </section>
 
-    <!-- The Domains -->
-    <section id="specialization" class="py-32 px-6 max-w-7xl mx-auto">
+    <!-- The Width: Disciplines -->
+    <section id="disciplines" class="py-32 px-6 max-w-7xl mx-auto">
         <div class="mb-20 reveal">
             <h2 class="text-sm font-bold uppercase tracking-[0.2em] text-cyan-500 mb-4">Width</h2>
             <h3 class="text-4xl font-bold mb-6">Taxonomy of Specialization</h3>
-            <p class="text-slate-400 max-w-2xl text-lg">Reliability is a function of integrated specialization. Modern digital infrastructure has exceeded the cognitive capacity of single generalists.</p>
+            <p class="text-slate-400 max-w-2xl text-lg">Systemic reliability is achieved through integrated specialization. Professional standards identify distinct knowledge areas required for stability.</p>
         </div>
         
         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 reveal">
-            <div class="glass-card p-8 rounded-2xl">
+            <div class="glass-card p-8 rounded-2xl group">
                 <i data-lucide="network" class="text-cyan-400 mb-6"></i>
-                <h4 class="font-bold mb-2">Structural Layout</h4>
-                <p class="text-xs text-slate-400">High-level orchestration of logical flows and data movement across service boundaries.</p>
+                <h4 class="font-bold mb-2">Systemic Design</h4>
+                <p class="text-xs text-slate-400">Orchestrating high-level logic flows and data contracts between services.</p>
             </div>
-            <div class="glass-card p-8 rounded-2xl">
-                <i data-lucide="boxes" class="text-blue-400 mb-6"></i>
-                <h4 class="font-bold mb-2">Component Level Design</h4>
-                <p class="text-xs text-slate-400">Internal component framing, extensible design patterns, and SOLID principle compliance.</p>
+            <div class="glass-card p-8 rounded-2xl group">
+                <i data-lucide="component" class="text-blue-400 mb-6"></i>
+                <h4 class="font-bold mb-2">Component Design (LLD)</h4>
+                <p class="text-xs text-slate-400">Internal structural logic. Extensible design patterns and SOLID compliance.</p>
             </div>
-            <div class="glass-card p-8 rounded-2xl">
+            <div class="glass-card p-8 rounded-2xl group">
                 <i data-lucide="server" class="text-purple-400 mb-6"></i>
                 <h4 class="font-bold mb-2">Backend Engineering</h4>
-                <p class="text-xs text-slate-400">Management of computational logic, concurrency patterns, and memory-safe execution.</p>
+                <p class="text-xs text-slate-400">Computational logic, multi-threaded concurrency, and memory allocation.</p>
             </div>
-            <div class="glass-card p-8 rounded-2xl">
+            <div class="glass-card p-8 rounded-2xl group">
                 <i data-lucide="monitor" class="text-orange-400 mb-6"></i>
                 <h4 class="font-bold mb-2">Frontend Engineering</h4>
-                <p class="text-xs text-slate-400">Managing client-side state, rendering engine optimization, and asynchronous UI orchestration.</p>
+                <p class="text-xs text-slate-400">Async state and rendering engine optimization in cross-platform environments.</p>
             </div>
-            <div class="glass-card p-8 rounded-2xl">
+            <div class="glass-card p-8 rounded-2xl group">
                 <i data-lucide="infinity" class="text-emerald-400 mb-6"></i>
                 <h4 class="font-bold mb-2">DevOps</h4>
-                <p class="text-xs text-slate-400">Infrastructure automation, deployment safety, and operational monitoring at scale.</p>
+                <p class="text-xs text-slate-400">Infrastructure automation, deployment safety, and operational monitoring.</p>
             </div>
-            <div class="glass-card p-8 rounded-2xl">
-                <i data-lucide="share-2" class="text-yellow-400 mb-6"></i>
-                <h4 class="font-bold mb-2">Integration</h4>
-                <p class="text-xs text-slate-400">Contract enforcement and semantic consistency between internal and 3rd-party services.</p>
-            </div>
-            <div class="glass-card p-8 rounded-2xl">
-                <i data-lucide="database" class="text-indigo-400 mb-6"></i>
-                <h4 class="font-bold mb-2">Data Engineering</h4>
-                <p class="text-xs text-slate-400">Distributed persistence, schema evolution logic, and high-throughput stream processing.</p>
-            </div>
-            <div class="glass-card p-8 rounded-2xl">
-                <i data-lucide="shield-check" class="text-red-400 mb-6"></i>
-                <h4 class="font-bold mb-2">Security Engineering</h4>
-                <p class="text-xs text-slate-400">Defensive technical design, threat modeling, and cryptographic protocol implementation.</p>
-            </div>
-            <div class="glass-card p-8 rounded-2xl">
+            <div class="glass-card p-8 rounded-2xl group">
                 <i data-lucide="wrench" class="text-pink-400 mb-6"></i>
                 <h4 class="font-bold mb-2">DevX</h4>
-                <p class="text-xs text-slate-400">Building internal tooling to enforce enterprise standards and reduce systemic friction.</p>
+                <p class="text-xs text-slate-400">Building internal tooling to enforce standards and reduce systemic friction.</p>
+            </div>
+            <div class="glass-card p-8 rounded-2xl group">
+                <i data-lucide="shuffle" class="text-yellow-400 mb-6"></i>
+                <h4 class="font-bold mb-2">Integration</h4>
+                <p class="text-xs text-slate-400">Technical contract enforcement between internal and 3rd-party services.</p>
+            </div>
+            <div class="glass-card p-8 rounded-2xl group">
+                <i data-lucide="database" class="text-indigo-400 mb-6"></i>
+                <h4 class="font-bold mb-2">Data Engineering</h4>
+                <p class="text-xs text-slate-400">Persistence logic, schema evolution, and managing state consistency.</p>
+            </div>
+            <div class="glass-card p-8 rounded-2xl group">
+                <i data-lucide="shield-check" class="text-red-400 mb-6"></i>
+                <h4 class="font-bold mb-2">Security</h4>
+                <p class="text-xs text-slate-400">Defensive design, threat modeling, and cryptographic implementation.</p>
             </div>
         </div>
-        <div class="citation mt-12 reveal">Source: IEEE Computer Society "Software Engineering Body of Knowledge" (SWEBOK v3.0).</div>
+        <div class="citation mt-12 reveal">Source: IEEE Computer Society "Software Engineering Body of Knowledge" (SWEBOK).</div>
     </section>
 
-    <!-- Evergreening -->
+    <!-- Lehman's Laws & Entropy -->
     <section class="py-32 bg-slate-900/40 border-y border-white/5 px-6">
         <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-20 items-center">
             <div class="reveal">
-                <h2 class="text-sm font-bold uppercase tracking-[0.2em] text-cyan-500 mb-4">Systemic Decay</h2>
-                <h3 class="text-4xl font-bold mb-6">The Evergreening Mandate</h3>
+                <h2 class="text-sm font-bold uppercase tracking-[0.2em] text-cyan-500 mb-4">Entropy</h2>
+                <h3 class="text-4xl font-bold mb-6">Lehman’s Laws of Evolution</h3>
                 <p class="text-lg text-slate-300 mb-8 leading-relaxed">
-                    Software is not a static asset; it exists on shifting terrain. Evergreening is the essential process of maintaining dependency health to prevent security obsolescence.
+                    Software systems are subject to "Laws of Software Evolution." Without continuous engineering intervention, systems naturally decay and become obsolete.
                 </p>
-                <div class="space-y-4">
-                    <div class="glass-card p-6 rounded-xl flex items-start gap-4">
-                        <i data-lucide="alert-circle" class="text-red-500 shrink-0"></i>
-                        <div>
-                            <h4 class="font-bold mb-1">Vulnerability Surface</h4>
-                            <p class="text-sm text-slate-400">Modern applications rely on thousands of external modules. Each day without active management increases exposure to CVE-based exploits.</p>
-                        </div>
+                <div class="space-y-6">
+                    <div class="glass-card p-6 rounded-xl border-l-2 border-cyan-500">
+                        <h4 class="font-bold text-xs uppercase text-cyan-400 mb-1">Law of Increasing Complexity</h4>
+                        <p class="text-sm text-slate-400 leading-relaxed">As a system evolves, its complexity increases unless work is done to maintain or reduce it.</p>
+                    </div>
+                    <div class="glass-card p-6 rounded-xl border-l-2 border-amber-500">
+                        <h4 class="font-bold text-xs uppercase text-amber-400 mb-1">Law of Declining Quality</h4>
+                        <p class="text-sm text-slate-400 leading-relaxed">Quality will appear to decline unless rigorously adapted to a changing environment.</p>
                     </div>
                 </div>
-                <div class="citation mt-8">Ref: Joel Spolsky, "The Law of Leaky Abstractions" / Dependency Entropy.</div>
+                <div class="citation mt-8">Ref: M.M. Lehman, "Laws of Software Evolution."</div>
             </div>
-            <div class="reveal glass-card p-10 rounded-3xl text-center">
-                <i data-lucide="refresh-cw" class="text-cyan-500 w-12 h-12 mx-auto mb-6"></i>
-                <h4 class="font-bold text-xl mb-4">Active Stewardship</h4>
-                <p class="text-slate-400 text-sm">
-                    Evergreening requires significant engineering effort to maintain technical compatibility while patching secure versions. It is a prerequisite for security, not an optional optimization.
+            <div class="reveal glass-card p-10 rounded-3xl h-full flex flex-col justify-center">
+                <h4 class="font-mono text-xs uppercase tracking-widest text-slate-500 mb-6">The Evergreening Tax</h4>
+                <div class="p-6 bg-slate-900/50 rounded-xl mb-6">
+                    <div class="text-3xl font-bold text-white mb-2">0.5 - 1.0 FTE</div>
+                    <p class="text-xs text-slate-400 uppercase tracking-widest">Per 100 Dependencies</p>
+                    <div class="h-1 w-full bg-slate-800 mt-4 rounded-full overflow-hidden">
+                        <div class="h-full bg-cyan-500 w-2/3"></div>
+                    </div>
+                </div>
+                <p class="text-sm text-slate-400 leading-relaxed">
+                    Research suggests a fixed stewardship overhead for dependency management. For every 100 high-level dependencies, approximately 0.5 to 1 full-time equivalent engineer is required purely to maintain a zero-vulnerability posture.
                 </p>
             </div>
         </div>
     </section>
 
-    <!-- Experience Graph -->
-    <section id="mastery" class="py-32 px-6 max-w-7xl mx-auto">
-        <div class="text-center mb-24 reveal">
-            <h2 class="text-sm font-bold uppercase tracking-[0.2em] text-cyan-500 mb-4">The Pivot</h2>
-            <h3 class="text-4xl font-bold mb-6">The Value Graph</h3>
-            <p class="text-slate-400 max-w-2xl mx-auto">Maturity is characterized by a pivot from tactical execution (Rule-based) to strategic stewardship (Holistic Integrity).</p>
-        </div>
-
-        <div class="reveal glass-card p-12 rounded-3xl relative">
-            <div class="h-[500px] w-full">
-                <svg viewBox="0 0 1000 500" class="w-full h-full overflow-visible">
-                    <line x1="100" y1="450" x2="100" y2="50" stroke="#334155" stroke-width="2"/>
-                    <line x1="100" y1="450" x2="950" y2="450" stroke="#334155" stroke-width="2"/>
-                    
-                    <path d="M100 450 Q 250 50, 900 300" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="5,5" opacity="0.3" class="graph-line"/>
-                    <path d="M100 450 Q 550 440, 900 50" fill="none" stroke="var(--accent)" stroke-width="4" class="graph-line"/>
-
-                    <text x="950" y="480" text-anchor="end" fill="#64748b" font-size="12" class="mono uppercase">Expertise Timeline (20 Years)</text>
-                    <g font-size="11" font-weight="bold">
-                        <text x="880" y="30" text-anchor="end" fill="var(--accent)">Master: Systemic Stewardship</text>
-                        <text x="250" y="80" fill="#ef4444" opacity="0.6">Novice: Tactical Implementation</text>
-                    </g>
-                </svg>
-            </div>
-            <div class="citation mt-10">Source: Dreyfus Model of Skill Acquisition / SFIA Standards.</div>
-        </div>
-    </section>
-
-    <!-- Timeline Breakdown -->
+    <!-- Capacity Allocation Table -->
     <section class="py-32 px-6 max-w-7xl mx-auto">
-        <div class="grid lg:grid-cols-4 gap-8">
-            <div class="reveal glass-card p-8 rounded-2xl border-t-4 border-cyan-500">
-                <div class="text-xs font-bold text-cyan-500 uppercase tracking-widest mb-4">Novice (0-2y)</div>
-                <h4 class="text-xl font-bold mb-4">Syntactic Output</h4>
-                <p class="text-sm text-slate-400">Rule-bound execution. High volume of code with limited understanding of systemic trade-offs or technical debt.</p>
-            </div>
-            <div class="reveal glass-card p-8 rounded-2xl border-t-4 border-blue-500">
-                <div class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-4">Proficient (2-7y)</div>
-                <h4 class="text-xl font-bold mb-4">Structural Logic</h4>
-                <p class="text-sm text-slate-400">Mastery of internal patterns (LLD) to ensure module extensibility and deterministic testing.</p>
-            </div>
-            <div class="reveal glass-card p-8 rounded-2xl border-t-4 border-purple-500">
-                <div class="text-xs font-bold text-purple-500 uppercase tracking-widest mb-4">Expert (7-15y)</div>
-                <h4 class="text-xl font-bold mb-4">Systems Analysis</h4>
-                <p class="text-sm text-slate-400">Holistic understanding of cross-service integrity, distributed persistent models, and long-term design.</p>
-            </div>
-            <div class="reveal glass-card p-8 rounded-2xl border-t-4 border-white">
-                <div class="text-xs font-bold text-white uppercase tracking-widest mb-4">Master (15y+)</div>
-                <h4 class="text-xl font-bold mb-4">Stewardship</h4>
-                <p class="text-sm text-slate-400">Intuitive management of institutional memory and multi-decade technical lifecycle risk mitigation.</p>
+        <div class="text-center mb-16 reveal">
+            <h2 class="text-sm font-bold uppercase tracking-[0.2em] text-cyan-500 mb-4">Planning</h2>
+            <h3 class="text-4xl font-bold mb-6">Capacity Allocation Ratios</h3>
+            <p class="text-slate-400 max-w-2xl mx-auto">
+                Systemic health is a product of deliberate resource allocation. Industry benchmarks provide standard ratios for balancing new features with stewardship.
+            </p>
+        </div>
+
+        <div class="reveal glass-card rounded-2xl overflow-hidden border border-slate-800">
+            <table>
+                <thead>
+                    <tr>
+                        <th>System Maturity</th>
+                        <th>Feature Development</th>
+                        <th>Stewardship / Evergreening</th>
+                        <th>Recommended Ratio</th>
+                    </tr>
+                </thead>
+                <tbody class="text-slate-300">
+                    <tr>
+                        <td class="font-bold text-cyan-400">Greenfield (Initial Build)</td>
+                        <td>80% Capacity</td>
+                        <td>20% Capacity</td>
+                        <td class="mono">4 : 1</td>
+                    </tr>
+                    <tr>
+                        <td class="font-bold text-emerald-400">Mature / Scaling</td>
+                        <td>50% Capacity</td>
+                        <td>50% Capacity</td>
+                        <td class="mono">1 : 1</td>
+                    </tr>
+                    <tr>
+                        <td class="font-bold text-amber-400">Legacy / Critical</td>
+                        <td>20% Capacity</td>
+                        <td>80% Capacity</td>
+                        <td class="mono">1 : 4</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="p-6 bg-slate-900/50 text-[10px] mono text-slate-500 uppercase flex justify-between">
+                <span>Ref: COCOMO II / Gartner IT Research</span>
+                <span>Optimal Capacity Allocation (2024 Benchmarks)</span>
             </div>
         </div>
     </section>
 
-    <!-- Footer Summary -->
+    <!-- Footer -->
     <footer class="py-40 text-center px-6 reveal">
         <div class="max-w-3xl mx-auto space-y-12">
             <p class="text-3xl font-light text-slate-300 italic leading-relaxed">
-                "Engineering is the construction of structural logic that must withstand the friction of time, scale, and entropy."
+                "Engineering is the management of trade-offs in an environment of constant change. Structural integrity is the objective; stewardship is the process."
             </p>
             <div class="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-slate-500 text-[10px] mono uppercase tracking-widest">
-                <span>Ref: ISO/IEC/IEEE 24765</span>
+                <span>Ref: SFIA v8 / IEEE SWEBOK / COCOMO II / ISO 24765</span>
                 <span>Established 1968 &middot; Garmisch Conference</span>
             </div>
         </div>
