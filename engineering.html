@@ -67,8 +67,27 @@
             background-size: 32px 32px;
         }
         
+        /* Bar animation logic */
         .sfia-bar {
+            height: 0;
             transition: height 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+            width: 100%;
+            min-width: 12px;
+        }
+
+        .reveal.active .sfia-bar {
+            height: var(--target-height);
+        }
+
+        .curve-path {
+            stroke-dasharray: 1500;
+            stroke-dashoffset: 1500;
+            transition: stroke-dashoffset 2s ease-in-out;
+            transition-delay: 0.8s;
+        }
+
+        .reveal.active .curve-path {
+            stroke-dashoffset: 0;
         }
 
         table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
@@ -148,18 +167,18 @@
             <div class="mb-20 reveal">
                 <h2 class="text-sm font-bold uppercase tracking-[0.2em] text-cyan-500 mb-4">Width</h2>
                 <h3 class="text-4xl font-bold mb-6">Taxonomy of Specialization</h3>
-                <p class="text-slate-400 max-w-2xl text-lg">Systemic reliability is a function of integrated specialization. Modern digital infrastructure has exceeded the cognitive capacity of single generalists.</p>
+                <p class="text-slate-400 max-w-2xl text-lg">Systemic reliability is a function of integrated specialization. Expecting one person to master all disciplines is a high-risk organizational fallacy.</p>
             </div>
             
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 reveal">
                 <div class="glass-card p-8 rounded-2xl group">
                     <i data-lucide="network" class="text-cyan-400 mb-6 group-hover:scale-110 transition-transform"></i>
                     <h4 class="font-bold mb-2">Systemic Logic Design</h4>
-                    <p class="text-xs text-slate-400 leading-relaxed">Global orchestration of data flows and service contracts across persistence nodes.</p>
+                    <p class="text-xs text-slate-400 leading-relaxed">Global orchestration of data flows and service contracts across distributed persistence nodes.</p>
                 </div>
                 <div class="glass-card p-8 rounded-2xl group">
                     <i data-lucide="boxes" class="text-blue-400 mb-6 group-hover:scale-110 transition-transform"></i>
-                    <h4 class="font-bold mb-2">Component Level Design</h4>
+                    <h4 class="font-bold mb-2">Component Design (LLD)</h4>
                     <p class="text-xs text-slate-400 leading-relaxed">Micro-structural code integrity, extensible patterns, and SOLID compliance.</p>
                 </div>
                 <div class="glass-card p-8 rounded-2xl group">
@@ -212,76 +231,91 @@
             </p>
         </div>
 
-        <!-- SFIA Curve -->
-        <div class="reveal glass-card p-12 rounded-3xl relative overflow-visible mb-12">
-            <div class="h-[450px] w-full flex items-end gap-2 md:gap-4 relative pt-20 border-b border-slate-800">
-                <div class="flex-1 flex flex-col items-center group">
-                    <div class="w-full bg-slate-800 rounded-t-lg relative sfia-bar" style="height: 14%">
-                        <div class="absolute -top-12 left-0 right-0 text-center text-[10px] mono text-slate-500">YEAR 0-1</div>
-                    </div>
-                    <span class="mt-4 text-[10px] font-bold text-slate-500 text-center">L1: FOLLOW<br>(HEO)</span>
+        <!-- Visual Mastery Curve -->
+        <div class="reveal glass-card p-4 md:p-12 rounded-3xl relative overflow-hidden mb-12">
+            <div class="absolute top-6 right-6 flex flex-col gap-2 z-10">
+                <div class="flex items-center gap-2 text-[8px] md:text-[10px] mono uppercase text-cyan-400">
+                    <div class="w-3 h-0.5 bg-cyan-400"></div> Stewardship Curve
                 </div>
-                <div class="flex-1 flex flex-col items-center group">
-                    <div class="w-full bg-slate-700 rounded-t-lg relative sfia-bar" style="height: 28%">
-                        <div class="absolute -top-12 left-0 right-0 text-center text-[10px] mono text-slate-500">YEAR 1-2</div>
-                    </div>
-                    <span class="mt-4 text-[10px] font-bold text-slate-500 text-center">L2: ASSIST<br>(HEO)</span>
+                <div class="flex items-center gap-2 text-[8px] md:text-[10px] mono uppercase text-slate-500">
+                    <div class="w-3 h-3 bg-slate-700 rounded-sm"></div> Capability Level
                 </div>
-                <div class="flex-1 flex flex-col items-center group">
-                    <div class="w-full bg-cyan-900/40 rounded-t-lg relative sfia-bar" style="height: 42%">
-                        <div class="absolute -top-12 left-0 right-0 text-center text-[10px] mono text-slate-400">YEAR 2-5</div>
+            </div>
+
+            <div class="h-[400px] w-full flex items-end gap-1 md:gap-4 relative pt-20 border-b border-slate-800">
+                <!-- Relative Viewbox Curve Overlay -->
+                <svg class="absolute inset-0 pointer-events-none" viewBox="0 0 1000 400" preserveAspectRatio="none">
+                    <path class="curve-path" d="M 0 380 C 200 380 500 350 1000 40" fill="none" stroke="var(--accent)" stroke-width="4" />
+                </svg>
+
+                <!-- SFIA BARS -->
+                <div class="flex-1 flex flex-col items-center">
+                    <div class="w-full bg-slate-800/80 border border-white/5 rounded-t-lg relative sfia-bar" style="--target-height: 14%">
+                        <div class="absolute -top-10 left-0 right-0 text-center text-[8px] md:text-[10px] mono text-slate-500">YR 0-1</div>
                     </div>
-                    <span class="mt-4 text-[10px] font-bold text-slate-400 text-center">L3: APPLY<br>(SEO)</span>
+                    <span class="mt-4 text-[8px] md:text-[10px] font-bold text-slate-500 text-center whitespace-nowrap">L1: FOLLOW<br>(HEO)</span>
                 </div>
-                <div class="flex-1 flex flex-col items-center group">
-                    <div class="w-full bg-cyan-700/60 rounded-t-lg relative sfia-bar" style="height: 57%">
-                        <div class="absolute -top-12 left-0 right-0 text-center text-[10px] mono text-cyan-500">YEAR 5-8</div>
+                <div class="flex-1 flex flex-col items-center">
+                    <div class="w-full bg-slate-700/80 border border-white/5 rounded-t-lg relative sfia-bar" style="--target-height: 28%">
+                        <div class="absolute -top-10 left-0 right-0 text-center text-[8px] md:text-[10px] mono text-slate-500">YR 1-2</div>
                     </div>
-                    <span class="mt-4 text-[10px] font-bold text-cyan-500 text-center">L4: ENABLE<br>(SEO/G7)</span>
+                    <span class="mt-4 text-[8px] md:text-[10px] font-bold text-slate-500 text-center whitespace-nowrap">L2: ASSIST<br>(HEO)</span>
                 </div>
-                <div class="flex-1 flex flex-col items-center group">
-                    <div class="w-full bg-cyan-600 rounded-t-lg relative sfia-bar" style="height: 71%">
-                        <div class="absolute -top-12 left-0 right-0 text-center text-[10px] mono text-cyan-400">YEAR 8-12</div>
+                <div class="flex-1 flex flex-col items-center">
+                    <div class="w-full bg-cyan-900/40 border border-cyan-500/10 rounded-t-lg relative sfia-bar" style="--target-height: 42%">
+                        <div class="absolute -top-10 left-0 right-0 text-center text-[8px] md:text-[10px] mono text-slate-400">YR 2-5</div>
                     </div>
-                    <span class="mt-4 text-[10px] font-bold text-cyan-400 text-center">L5: ENSURE<br>(G7)</span>
+                    <span class="mt-4 text-[8px] md:text-[10px] font-bold text-slate-400 text-center whitespace-nowrap">L3: APPLY<br>(SEO)</span>
                 </div>
-                <div class="flex-1 flex flex-col items-center group">
-                    <div class="w-full bg-cyan-500 rounded-t-lg relative sfia-bar" style="height: 85%">
-                        <div class="absolute -top-12 left-0 right-0 text-center text-[10px] mono text-cyan-300">YEAR 12-18</div>
+                <div class="flex-1 flex flex-col items-center">
+                    <div class="w-full bg-cyan-700/60 border border-cyan-500/20 rounded-t-lg relative sfia-bar" style="--target-height: 57%">
+                        <div class="absolute -top-10 left-0 right-0 text-center text-[8px] md:text-[10px] mono text-cyan-500">YR 5-8</div>
                     </div>
-                    <span class="mt-4 text-[10px] font-bold text-cyan-300 text-center">L6: INFLUENCE<br>(G6)</span>
+                    <span class="mt-4 text-[8px] md:text-[10px] font-bold text-cyan-500 text-center whitespace-nowrap">L4: ENABLE<br>(SEO/G7)</span>
                 </div>
-                <div class="flex-1 flex flex-col items-center group">
-                    <div class="w-full bg-gradient-to-t from-cyan-600 to-blue-400 rounded-t-lg relative sfia-bar" style="height: 100%">
-                        <div class="absolute -top-12 left-0 right-0 text-center text-[10px] mono text-white">YEAR 18+</div>
+                <div class="flex-1 flex flex-col items-center">
+                    <div class="w-full bg-cyan-600/80 border border-cyan-500/30 rounded-t-lg relative sfia-bar" style="--target-height: 71%">
+                        <div class="absolute -top-10 left-0 right-0 text-center text-[8px] md:text-[10px] mono text-cyan-400">YR 8-12</div>
                     </div>
-                    <span class="mt-4 text-[10px] font-bold text-white text-center">L7: STEWARD<br>(G6)</span>
+                    <span class="mt-4 text-[8px] md:text-[10px] font-bold text-cyan-400 text-center whitespace-nowrap">L5: ENSURE<br>(G7)</span>
+                </div>
+                <div class="flex-1 flex flex-col items-center">
+                    <div class="w-full bg-cyan-500/80 border border-cyan-400/30 rounded-t-lg relative sfia-bar" style="--target-height: 85%">
+                        <div class="absolute -top-10 left-0 right-0 text-center text-[8px] md:text-[10px] mono text-cyan-300">YR 12-18</div>
+                    </div>
+                    <span class="mt-4 text-[8px] md:text-[10px] font-bold text-cyan-300 text-center whitespace-nowrap">L6: INFL<br>(G6)</span>
+                </div>
+                <div class="flex-1 flex flex-col items-center">
+                    <div class="w-full bg-gradient-to-t from-cyan-600 to-blue-400 rounded-t-lg relative sfia-bar" style="--target-height: 100%">
+                        <div class="absolute -top-10 left-0 right-0 text-center text-[8px] md:text-[10px] mono text-white">YR 18+</div>
+                    </div>
+                    <span class="mt-4 text-[8px] md:text-[10px] font-bold text-white text-center whitespace-nowrap">L7: STEWARD<br>(G6)</span>
                 </div>
             </div>
             <div class="citation mt-8">Source: SFIA v8 / DDaT Capability Standards.</div>
         </div>
 
-        <!-- Year Bubbles -->
-        <div class="grid lg:grid-cols-4 gap-8 reveal">
-            <div class="glass-card p-8 rounded-2xl border-t-4 border-cyan-500">
-                <div class="text-xs font-bold text-cyan-500 uppercase tracking-widest mb-4">Years 0—2 (HEO)</div>
-                <h4 class="text-xl font-bold mb-4">Syntactic Mastery</h4>
-                <p class="text-sm text-slate-400 leading-relaxed">Proficiency in the vocabulary of systems. Focus is tactical—implementing defined requirements under supervision.</p>
+        <!-- Phase Details -->
+        <div class="grid lg:grid-cols-4 gap-4 md:gap-8 reveal">
+            <div class="glass-card p-6 md:p-8 rounded-2xl border-t-4 border-cyan-500">
+                <div class="text-[10px] font-bold text-cyan-500 uppercase tracking-widest mb-4">Years 0—2 (HEO)</div>
+                <h4 class="text-lg md:text-xl font-bold mb-4">Syntactic Mastery</h4>
+                <p class="text-sm text-slate-400 leading-relaxed">Proficiency in tool vocabulary. Focus is tactical execution under high levels of supervision.</p>
             </div>
-            <div class="reveal glass-card p-8 rounded-2xl border-t-4 border-blue-500">
-                <div class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-4">Years 2—7 (SEO)</div>
-                <h4 class="text-xl font-bold mb-4">Structural Logic</h4>
-                <p class="text-sm text-slate-400 leading-relaxed">Designing the internal frameworks of modules to ensure they are testable, extensible, and isolated.</p>
+            <div class="glass-card p-6 md:p-8 rounded-2xl border-t-4 border-blue-500">
+                <div class="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-4">Years 2—7 (SEO)</div>
+                <h4 class="text-lg md:text-xl font-bold mb-4">Structural Logic</h4>
+                <p class="text-sm text-slate-400 leading-relaxed">Designing internal component frameworks to ensure extensibility and deterministic testing.</p>
             </div>
-            <div class="reveal glass-card p-8 rounded-2xl border-t-4 border-purple-500">
-                <div class="text-xs font-bold text-purple-500 uppercase tracking-widest mb-4">Years 7—15 (SEO/G7)</div>
-                <h4 class="text-xl font-bold mb-4">Systemic Stewardship</h4>
-                <p class="text-sm text-slate-400 leading-relaxed">Managing complexity across service boundaries. Focusing on cross-service integrity and technical design trade-offs.</p>
+            <div class="glass-card p-6 md:p-8 rounded-2xl border-t-4 border-purple-500">
+                <div class="text-[10px] font-bold text-purple-500 uppercase tracking-widest mb-4">Years 7—15 (SEO/G7)</div>
+                <h4 class="text-lg md:text-xl font-bold mb-4">Systemic Stewardship</h4>
+                <p class="text-sm text-slate-400 leading-relaxed">Managing mesh complexity, cross-service integrity, and long-term technical trade-offs.</p>
             </div>
-            <div class="reveal glass-card p-8 rounded-2xl border-t-4 border-white">
-                <div class="text-xs font-bold text-white uppercase tracking-widest mb-4">Year 15+ (G6)</div>
-                <h4 class="text-xl font-bold mb-4">Strategic Direction</h4>
-                <p class="text-sm text-slate-400 leading-relaxed">Institutional memory and strategic roadmap guidance. Identifying legacy risks and technical lifecycle assets.</p>
+            <div class="glass-card p-6 md:p-8 rounded-2xl border-t-4 border-white">
+                <div class="text-[10px] font-bold text-white uppercase tracking-widest mb-4">Year 15+ (G6)</div>
+                <h4 class="text-lg md:text-xl font-bold mb-4">Strategic Direction</h4>
+                <p class="text-sm text-slate-400 leading-relaxed">Institutional memory and roadmap guidance. Managing technical lifecycle risk at a departmental level.</p>
             </div>
         </div>
     </section>
@@ -302,7 +336,7 @@
                     </div>
                     <div class="glass-card p-6 rounded-xl border-l-2 border-amber-500">
                         <h4 class="font-bold text-xs uppercase text-amber-400 mb-1">Declining Quality</h4>
-                        <p class="text-sm text-slate-400 leading-relaxed">Software integrity declines unless rigorously adapted to a changing threat and tech environment.</p>
+                        <p class="text-sm text-slate-400 leading-relaxed">Software integrity declines unless rigorously adapted to a changing threat environment.</p>
                     </div>
                 </div>
                 <div class="citation mt-8">Ref: Lehman's Laws / Gartner Dependency Tax (0.5-1.0 FTE per 100 dependencies).</div>
@@ -364,7 +398,9 @@
         lucide.createIcons();
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
-                if (entry.isIntersecting) entry.target.classList.add('active');
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
             });
         }, { threshold: 0.1 });
         document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
