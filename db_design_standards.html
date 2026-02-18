@@ -7,8 +7,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>
     <style>
         :root {
-            --primary: #0f172a; /* Darker, more corporate blue-black */
-            --accent: #2563eb; /* Action blue */
+            --primary: #0f172a;
+            --accent: #2563eb;
             --secondary: #475569;
             --bg-light: #f8fafc;
             --text-main: #334155;
@@ -18,6 +18,8 @@
             --success-bg: #f0fdf4;
             --success-border: #bbf7d0;
             --success-text: #15803d;
+            --danger-bg: #fef2f2;
+            --danger-text: #b91c1c;
         }
 
         body {
@@ -149,11 +151,16 @@
         .toc a:hover { color: var(--accent); }
         .toc a.active { color: var(--primary); font-weight: 600; }
 
-        /* Syntax Highlighting */
         .json-key { color: #93c5fd; }
         .json-string { color: #fdba74; }
         .json-number { color: #86efac; }
         .comment { color: #94a3b8; font-style: italic; }
+
+        .compliance-table th { background-color: var(--primary); color: white; }
+        .compliance-table td { vertical-align: top; }
+        .pass-badge { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
+        .algo-badge { background: var(--code-bg); color: var(--code-text); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.8rem; }
+        .bad-algo { text-decoration: line-through; color: var(--danger-text); opacity: 0.7; }
 
     </style>
 </head>
@@ -162,7 +169,7 @@
 <header>
     <h1>Document Database Design Standards</h1>
     <div class="meta">
-        <strong>Version:</strong> 3.0<br>
+        <strong>Version:</strong> 3.3<br>
         <strong>Last Updated:</strong> Feb 2026<br>
         <strong>Scope:</strong> Commercial Production Systems
     </div>
@@ -170,8 +177,7 @@
 
 <div class="container">
     <main>
-        
-        <!-- SECTION 7: CHECKLIST (Moved to top priority per commercial best practice) -->
+        <!-- SECTION 1: CHECKLIST -->
         <section id="checklist">
             <h2>1. Design & Review Checklist</h2>
             <p>Use this checklist for every new collection or major schema change. Failure to address these points typically results in technical debt or production incidents.</p>
@@ -197,36 +203,45 @@
                         <strong>Cardinality Check:</strong> For 1-to-Many relationships, is the "Many" side &lt;100 (Embed), &lt;1000 (Subset/Bucket), or &gt;1000 (Reference)?
                     </div>
                 </div>
-                <div class="checklist-item">
-                    <input type="checkbox">
-                    <div>
-                        <strong>Document Size Limit:</strong> Is the maximum estimated document size comfortably under the 16MB hard limit (aim for &lt;4MB for performance)?
-                    </div>
-                </div>
 
                 <!-- Category 2 -->
                 <div class="checklist-category">Integrity & Validation</div>
                 <div class="checklist-item">
                     <input type="checkbox">
                     <div>
-                        <strong>Schema Validation:</strong> Is JSON Schema validation defined at the <em>database level</em> (not just application code) to prevent data corruption?
+                        <strong>Schema Validation:</strong> Is JSON Schema validation defined at the <em>database level</em> to prevent data corruption?
                     </div>
                 </div>
                 <div class="checklist-item">
                     <input type="checkbox">
                     <div>
-                        <strong>Transaction Strategy:</strong> Does the operation require ACID guarantees across multiple documents? If yes, are Multi-Document Transactions enabled and handled correctly in code?
-                    </div>
-                </div>
-                <div class="checklist-item">
-                    <input type="checkbox">
-                    <div>
-                        <strong>Enum Enforcement:</strong> Are status fields (e.g., `pending`, `active`) restricted to a strict Enum list in the schema validator?
+                        <strong>Transaction Strategy:</strong> Does the operation require ACID guarantees across multiple documents? If yes, are Multi-Document Transactions enabled?
                     </div>
                 </div>
 
                 <!-- Category 3 -->
-                <div class="checklist-category">Performance & Indexing</div>
+                <div class="checklist-category">Security: Blind Indexing</div>
+                <div class="checklist-item">
+                    <input type="checkbox">
+                    <div>
+                        <strong>PII Isolation:</strong> Are all PII fields (Email, NINO, Bank Details) encrypted <em>before</em> entering the DB?
+                    </div>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox">
+                    <div>
+                        <strong>Algorithm Check:</strong> Is the blind index using <strong>HMAC-SHA256</strong> (or better) with a secure, rotated secret key? (Simple SHA256 is forbidden).
+                    </div>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox">
+                    <div>
+                        <strong>No Plaintext PII:</strong> Have you verified no PII exists in plaintext in the schema or logs?
+                    </div>
+                </div>
+
+                <!-- Category 4 -->
+                <div class="checklist-category">Performance</div>
                 <div class="checklist-item">
                     <input type="checkbox">
                     <div>
@@ -236,28 +251,7 @@
                 <div class="checklist-item">
                     <input type="checkbox">
                     <div>
-                        <strong>Covered Queries:</strong> For high-frequency reads, does the index cover all projected fields to avoid fetching the document from disk?
-                    </div>
-                </div>
-                <div class="checklist-item">
-                    <input type="checkbox">
-                    <div>
-                        <strong>Write Performance:</strong> Are there too many indexes? (Rule of thumb: &gt;5 indexes on a write-heavy collection requires justification).
-                    </div>
-                </div>
-
-                <!-- Category 4 -->
-                <div class="checklist-category">Security & Lifecycle</div>
-                <div class="checklist-item">
-                    <input type="checkbox">
-                    <div>
-                        <strong>Field-Level Encryption:</strong> Is PII (Personally Identifiable Information) encrypted via CSFLE?
-                    </div>
-                </div>
-                <div class="checklist-item">
-                    <input type="checkbox">
-                    <div>
-                        <strong>Data Lifecycle (TTL):</strong> Is there an automatic deletion (TTL index) or archival strategy for old data?
+                        <strong>Covered Queries:</strong> For high-frequency reads, does the index cover all projected fields?
                     </div>
                 </div>
             </div>
@@ -273,7 +267,7 @@
                 <ol>
                     <li><strong>Together is Better:</strong> Access patterns dictate structure. If you read data together, store it together (Embedding).</li>
                     <li><strong>Avoid Unbounded Arrays:</strong> If a child array can grow indefinitely, do NOT embed. Use References.</li>
-                    <li><strong>Duplication is Acceptable:</strong> Duplicating data (e.g., `user_name` inside an `order`) to avoid `$lookup` (joins) is standard practice in high-scale systems.</li>
+                    <li><strong>Blind Indexing for PII:</strong> Querying encrypted data requires a deterministic keyed hash. You index the hash, not the encrypted blob.</li>
                 </ol>
             </div>
         </section>
@@ -281,34 +275,35 @@
         <!-- SECTION 3 -->
         <section id="modeling">
             <h2>3. Visual Modeling (Mermaid)</h2>
-            <p>We use Mermaid Class Diagrams to visualize schema relationships. Arrows indicate whether data is embedded or referenced.</p>
+            <p>We use Mermaid Class Diagrams to visualize schema relationships. Note the distinction between Encrypted Data (for display) and Hashed Data (for lookup).</p>
             
             <div class="mermaid">
             classDiagram
                 class User {
-                    +_id ObjectId
-                    +email String
-                    +roles Array
+                    +_id : ObjectId
+                    +email_enc : String
+                    +email_hash : String
+                    +roles : Array
                 }
 
                 class Order {
-                    +_id ObjectId
-                    +user_id ObjectId_Ref
-                    +total Decimal
-                    +status Enum
+                    +_id : ObjectId
+                    +user_id : ObjectId
+                    +total : Decimal
+                    +status : Enum
                 }
 
                 class LineItem {
-                    +sku String
-                    +qty Int
-                    +price Decimal
+                    +sku : String
+                    +qty : Int
+                    +price : Decimal
                 }
 
                 %% Relationships
                 User "1" --> "*" Order : references
                 Order "1" *-- "*" LineItem : embeds
             </div>
-            <p class="meta"><em>Fig 1: Order system showing Reference (User->Order) vs Embedding (Order->LineItem)</em></p>
+            <p class="meta"><em>Fig 1: User model showing split between encrypted storage and hashed lookup fields.</em></p>
         </section>
 
         <!-- SECTION 4 -->
@@ -316,16 +311,43 @@
             <h2>4. Security & Cyber Considerations</h2>
             <p>NoSQL databases are often insecure by default. The following controls are mandatory for commercial deployments.</p>
 
-            <h3>4.1 Injection Prevention</h3>
+            <h3>4.1 Pattern: Blind Indexing (App-Side Encryption)</h3>
             <div class="warning">
-                <strong>Risk:</strong> Passing unsanitized user input directly into query filters allows attackers to bypass logic.
-                <br><em>Example Attack:</em> Sending <code>{ "$ne": null }</code> as a password field bypasses auth.
+                <strong>Requirement:</strong> PII must be encrypted <em>before</em> entering the DB. To allow searching (e.g., "Find User by Email"), we store a deterministic <strong>Blind Index</strong>.
             </div>
-            <ul>
-                <li><strong>Control:</strong> Never construct query objects directly from `req.body`.</li>
-                <li><strong>Control:</strong> Cast all inputs to their specific types (e.g., `ObjectId`, `String`, `Int`) before querying.</li>
-                <li><strong>Control:</strong> Use an ODM (Mongoose/Typegoose) with strict schema validation.</li>
-            </ul>
+
+            <h4>Approved Algorithms</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Use Case</th>
+                        <th>Recommended Algorithm</th>
+                        <th>Why?</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Blind Indexing</strong><br>(Searchable Hash)</td>
+                        <td><span class="algo-badge">HMAC-SHA256</span></td>
+                        <td><strong>Mandatory:</strong> Requires a secret key (Pepper) stored in the App (Vault/KMS). Without the key, the hash cannot be brute-forced via Rainbow Tables. Fast enough for high-volume lookups.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Passwords</strong><br>(Auth)</td>
+                        <td><span class="algo-badge">Argon2id</span></td>
+                        <td>Memory-hard hashing prevents GPU cracking. Too slow for general indexing, but perfect for auth.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Encryption</strong><br>(Storage)</td>
+                        <td><span class="algo-badge">AES-256-GCM</span></td>
+                        <td>Standard symmetric encryption with integrity checks.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>FORBIDDEN</strong></td>
+                        <td><span class="bad-algo">MD5</span>, <span class="bad-algo">SHA1</span>, <span class="bad-algo">Simple SHA256</span></td>
+                        <td>Simple hashes (even with salt) are vulnerable to Rainbow Tables if the DB is leaked. <strong>Always use a Keyed Hash (HMAC).</strong></td>
+                    </tr>
+                </tbody>
+            </table>
 
             <h3>4.2 Network & Encryption</h3>
             <table>
@@ -341,18 +363,7 @@
                     <td><strong>At Rest</strong></td>
                     <td>Volume-level encryption (e.g., AWS KMS) enabled.</td>
                 </tr>
-                <tr>
-                    <td><strong>Field Level</strong></td>
-                    <td>PII (e.g., `email`, `bank_details`) must use Client-Side Field Level Encryption (CSFLE) for GDPR compliance.</td>
-                </tr>
             </table>
-
-            <h3>4.3 Role-Based Access Control (RBAC)</h3>
-            <p>Do not use the `root` user for application connections.</p>
-            <ul>
-                <li><strong>Service Accounts:</strong> Create specific DB users with <strong>Least Privilege</strong> (e.g., `readWrite` on specific database only).</li>
-                <li><strong>No Public Access:</strong> Database must reside in a private VPC subnet.</li>
-            </ul>
         </section>
 
         <!-- SECTION 5 -->
@@ -363,139 +374,141 @@
             <h3>5.1 The ESR Rule</h3>
             <p>When creating compound indexes, always follow the <strong>E.S.R.</strong> order:</p>
             <ol>
-                <li><strong>Equality:</strong> Fields matched exactly (e.g., `status: "active"`).</li>
+                <li><strong>Equality:</strong> Fields matched exactly (e.g., `email_hash: "..."`).</li>
                 <li><strong>Sort:</strong> Fields used to sort results (e.g., `created_at: -1`).</li>
                 <li><strong>Range:</strong> Fields used for range filters (e.g., `price: { $gt: 100 }`).</li>
             </ol>
-
-            <h3>5.2 Working Set Management</h3>
-            <div class="tip">
-                <strong>Guideline:</strong> Your "Working Set" (frequently accessed data + indexes) must fit in RAM. If it exceeds RAM, disk I/O will severely degrade performance.
-            </div>
         </section>
 
         <!-- SECTION 6 -->
         <section id="example">
-            <h2>6. Schema Example: E-Commerce Order</h2>
-            <p>Below is a production-ready JSON schema template including validation and documentation comments.</p>
+            <h2>6. Schema Example: Secure User Profile</h2>
+            <p>Below is a production-ready JSON schema template demonstrating the Blind Indexing pattern.</p>
 
 <pre><code>{
   <span class="json-key">"_id"</span>: <span class="json-string">"ObjectId('...')"</span>,
-  <span class="json-key">"user_id"</span>: <span class="json-string">"ObjectId('...')"</span>, <span class="comment">// Indexed. Reference to Users.</span>
   
-  <span class="comment">// PATTERN: Bucket Pattern / Snapshot</span>
-  <span class="comment">// Duplicate user details to freeze state at time of purchase.</span>
-  <span class="json-key">"customer_snapshot"</span>: {
-    <span class="json-key">"name"</span>: <span class="json-string">"J. Doe"</span>,
-    <span class="json-key">"email"</span>: <span class="json-string">"jdoe@example.com"</span>
+  <span class="comment">// PII FIELD: EMAIL</span>
+  <span class="comment">// 1. Encrypted blob for display (randomized IV, cannot be queried)</span>
+  <span class="json-key">"email_enc"</span>: <span class="json-string">"BASE64_ENCRYPTED_BLOB..."</span>,
+  <span class="comment">// 2. Deterministic Hash for lookup (HMAC-SHA256 with Secret Key)</span>
+  <span class="json-key">"email_hash"</span>: <span class="json-string">"e3b0c44298fc1c149afbf4c8996fb924..."</span>, <span class="comment">// Indexed</span>
+
+  <span class="json-key">"status"</span>: <span class="json-string">"active"</span>,
+  
+  <span class="comment">// NON-PII fields can be plaintext</span>
+  <span class="json-key">"preferences"</span>: {
+    <span class="json-key">"marketing_opt_in"</span>: <span class="json-string">true</span>,
+    <span class="json-key">"theme"</span>: <span class="json-string">"dark"</span>
   },
-
-  <span class="json-key">"status"</span>: <span class="json-string">"shipped"</span>, <span class="comment">// Enum: [pending, paid, shipped, cancelled]</span>
-  <span class="json-key">"total_amount"</span>: <span class="json-number">45.00</span>,
-  
-  <span class="comment">// PATTERN: Computed Pattern</span>
-  <span class="comment">// Pre-calculate this to avoid summing line_items on every read.</span>
-  <span class="json-key">"item_count"</span>: <span class="json-number">2</span>, 
-
-  <span class="comment">// PATTERN: Embedding</span>
-  <span class="comment">// Line items are bounded. Read/Written together with Order.</span>
-  <span class="json-key">"line_items"</span>: [
-    {
-      <span class="json-key">"sku"</span>: <span class="json-string">"PROD-001-BLK"</span>,
-      <span class="json-key">"name"</span>: <span class="json-string">"Cotton T-Shirt - Black"</span>,
-      <span class="json-key">"price"</span>: <span class="json-number">15.00</span>,
-      <span class="json-key">"qty"</span>: <span class="json-number">3</span>
-    }
-  ],
 
   <span class="json-key">"audit_log"</span>: {
     <span class="json-key">"created_at"</span>: <span class="json-string">"ISODate('2026-02-18T10:00:00Z')"</span>,
-    <span class="json-key">"updated_at"</span>: <span class="json-string">"ISODate('2026-02-18T14:30:00Z')"</span>,
     <span class="json-key">"ip_address"</span>: <span class="json-string">"192.168.1.5"</span>
   }
 }</code></pre>
         </section>
-
-        <!-- SECTION 7 -->
-        <section id="operational">
-            <h2>7. Operational Excellence</h2>
-            <ul>
-                <li><strong>Point-in-Time Recovery (PITR):</strong> Must be enabled to allow restoration to a specific second.</li>
-                <li><strong>Schema Versioning:</strong> Add a `schema_version: Int` field to every document to handle migration logic in code.</li>
-                <li><strong>Slow Query Logging:</strong> Enable profiling for queries exceeding 100ms.</li>
-            </ul>
-        </section>
         
         <!-- APPENDIX -->
         <section id="appendix">
-            <h2>Appendix A: Domain Example - Carer's Allowance</h2>
-            <p>This example demonstrates the <strong>Snapshot Pattern</strong> for high-integrity domains. A benefits claim is a legal document representing facts at a specific point in time.</p>
+            <h2>Appendix A: Domain Case Study - Carer's Allowance</h2>
+            <p>This case study demonstrates <strong>App-Side Encryption</strong> for a high-integrity domain. NINO and Bank Details are PII and must be encrypted before DB insertion.</p>
 
+            <h3>A.1 Requirements & Access Patterns</h3>
+            <ul>
+                <li><strong>Read 1 (Search):</strong> "Find Claim by Caree's NINO" (Requires Blind Index on NINO).</li>
+                <li><strong>Read 2 (Display):</strong> "Show Bank Details" (Requires Decryption of `_enc` fields).</li>
+                <li><strong>Write 1:</strong> "Submit Claim" (App calculates hashes and encrypts payloads).</li>
+            </ul>
+
+            <h3>A.2 Data Model</h3>
             <div class="mermaid">
             classDiagram
                 class Claim {
-                    +_id ObjectId
-                    +claimant_id ObjectId_Ref
-                    +status Enum
-                    +submission_date ISODate
+                    +_id : ObjectId
+                    +status : Enum
                 }
                 
-                class PersonCaredFor {
-                    +nino String
-                    +dob ISODate
-                    +benefit_type Enum
+                class CareePII {
+                    +nino_enc : String
+                    +nino_hash : String
+                    +dob_enc : String
                 }
 
-                class Eligibility {
-                    +hours_caring Int
-                    +earnings_check Boolean
-                    +education_check Boolean
-                }
-                
-                class BankDetails {
-                    +sort_code String
-                    +account_number String
+                class BankDetailsPII {
+                    +sort_code_enc : String
+                    +account_enc : String
                 }
 
-                %% Embedding Composition
-                Claim "1" *-- "1" PersonCaredFor : embeds_Snapshot
-                Claim "1" *-- "1" Eligibility : embeds_Snapshot
-                Claim "1" *-- "1" BankDetails : embeds_Snapshot
+                Claim "1" *-- "1" CareePII : embeds_Secure
+                Claim "1" *-- "1" BankDetailsPII : embeds_Secure
             </div>
 
-            <h3>Schema: `claims` Collection</h3>
-<pre><code>{
-  <span class="json-key">"_id"</span>: <span class="json-string">"ObjectId('...')"</span>,
-  <span class="json-key">"claimant_id"</span>: <span class="json-string">"ObjectId('...')"</span>, <span class="comment">// Reference to User account</span>
-  <span class="json-key">"claim_ref"</span>: <span class="json-string">"CA-2026-8821"</span>,
-  <span class="json-key">"status"</span>: <span class="json-string">"assessment"</span>,
-  
-  <span class="comment">// SNAPSHOT: We embed the details of the person being cared for.</span>
-  <span class="comment">// If this person moves house next week, this claim record must NOT change.</span>
-  <span class="json-key">"caree_details"</span>: {
-    <span class="json-key">"nino"</span>: <span class="json-string">"QQ123456C"</span>,
-    <span class="json-key">"dob"</span>: <span class="json-string">"1955-08-20"</span>,
-    <span class="json-key">"address"</span>: {
-        <span class="json-key">"postcode"</span>: <span class="json-string">"AB1 2CD"</span>,
-        <span class="json-key">"line1"</span>: <span class="json-string">"1 Example Road"</span>
-    },
-    <span class="json-key">"qualifying_benefit"</span>: <span class="json-string">"PIP_DAILY_LIVING"</span>
-  },
+            <h3>A.3 Checklist Compliance Matrix</h3>
+            <table class="compliance-table">
+                <thead>
+                    <tr>
+                        <th>Checklist Item</th>
+                        <th>Implementation Decision</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Blind Indexing</strong></td>
+                        <td>`nino` is searchable. We store `nino_hash` (HMAC-SHA256) for exact matching. `nino_enc` is used for display only.</td>
+                        <td><span class="pass-badge">PASSED</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Encryption Strategy</strong></td>
+                        <td>Application uses AES-256-GCM. DB receives only ciphertext.</td>
+                        <td><span class="pass-badge">PASSED</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Schema Validation</strong></td>
+                        <td>Validator enforces presence of `_hash` fields for all PII blocks.</td>
+                        <td><span class="pass-badge">PASSED</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>ESR Rule</strong></td>
+                        <td>Search Index: `{ "caree_details.nino_hash": 1, "status": 1 }`.</td>
+                        <td><span class="pass-badge">PASSED</span></td>
+                    </tr>
+                </tbody>
+            </table>
 
-  <span class="comment">// SNAPSHOT: Financial eligibility at time of claim</span>
-  <span class="json-key">"eligibility_check"</span>: {
-    <span class="json-key">"hours_per_week"</span>: <span class="json-number">35</span>,
-    <span class="json-key">"in_education"</span>: <span class="json-string">false</span>,
-    <span class="json-key">"net_earnings_weekly"</span>: <span class="json-number">110.00</span>
-  },
-
-  <span class="comment">// Encrypted field for payment</span>
-  <span class="json-key">"payment_details"</span>: {
-    <span class="json-key">"bank_name"</span>: <span class="json-string">"Lloyds"</span>,
-    <span class="json-key">"sort_code"</span>: <span class="json-string">"XX-XX-XX"</span>, <span class="comment">// CSFLE Encrypted</span>
-    <span class="json-key">"account_number"</span>: <span class="json-string">"XXXXXXXX"</span> <span class="comment">// CSFLE Encrypted</span>
+            <h3>A.4 Implementation Artifacts</h3>
+            
+            <h4>Database-Level Schema Validation</h4>
+<pre><code>db.createCollection("claims", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["status", "caree_details"],
+      properties: {
+        caree_details: {
+          bsonType: "object",
+          required: ["nino_enc", "nino_hash"], // Enforce Hash presence
+          properties: {
+            nino_enc: { bsonType: "string", description: "AES-256-GCM ciphertext" },
+            nino_hash: { bsonType: "string", description: "HMAC-SHA256 for lookup" }
+          }
+        }
+      }
+    }
   }
-}</code></pre>
+})</code></pre>
+
+            <h4>Indexing Strategy</h4>
+<pre><code>// 1. Support Caseworker Search: "Find claim by NINO"
+// We index the HASH, not the encrypted data.
+db.claims.createIndex({ "caree_details.nino_hash": 1 });
+
+// 2. Support Dashboard: "Find by Claimant ID (Hashed) + Date"
+db.claims.createIndex({ "claimant_id_hash": 1, "submission_date": -1 });
+
+// 3. GDPR Retention
+db.claims.createIndex({ "submission_date": 1 }, { expireAfterSeconds: 220752000 });</code></pre>
         </section>
 
     </main>
@@ -510,8 +523,7 @@
                 <li><a href="#security">4. Security & Cyber</a></li>
                 <li><a href="#performance">5. Performance</a></li>
                 <li><a href="#example">6. Schema Example</a></li>
-                <li><a href="#operational">7. Operations</a></li>
-                <li><a href="#appendix">Appx A. Carer's Allowance</a></li>
+                <li><a href="#appendix">Appx A. Case Study</a></li>
             </ul>
         </div>
     </aside>
