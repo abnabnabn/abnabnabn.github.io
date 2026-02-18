@@ -159,7 +159,7 @@
         .compliance-table th { background-color: var(--primary); color: white; }
         .compliance-table td { vertical-align: top; }
         .pass-badge { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
-        .algo-badge { background: var(--code-bg); color: var(--code-text); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.8rem; }
+        .algo-badge { background: var(--code-bg); color: var(--code-text); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.8rem; font-weight: bold; border: 1px solid #475569;}
         .bad-algo { text-decoration: line-through; color: var(--danger-text); opacity: 0.7; }
 
     </style>
@@ -230,7 +230,7 @@
                 <div class="checklist-item">
                     <input type="checkbox">
                     <div>
-                        <strong>Algorithm Check:</strong> Is the blind index using <strong>HMAC-SHA256</strong> (or better) with a secure, rotated secret key? (Simple SHA256 is forbidden).
+                        <strong>Algorithm Check:</strong> Is the blind index using <strong>HMAC-SHA256</strong> (or better) with a secure, rotated secret key? (Simple SHA256/MD5 are forbidden).
                     </div>
                 </div>
                 <div class="checklist-item">
@@ -280,23 +280,23 @@
             <div class="mermaid">
             classDiagram
                 class User {
-                    +_id : ObjectId
-                    +email_enc : String
-                    +email_hash : String
-                    +roles : Array
+                    +ObjectId _id
+                    +String email_enc
+                    +String email_hash
+                    +Array roles
                 }
 
                 class Order {
-                    +_id : ObjectId
-                    +user_id : ObjectId
-                    +total : Decimal
-                    +status : Enum
+                    +ObjectId _id
+                    +ObjectId user_id
+                    +Decimal total
+                    +Enum status
                 }
 
                 class LineItem {
-                    +sku : String
-                    +qty : Int
-                    +price : Decimal
+                    +String sku
+                    +Int qty
+                    +Decimal price
                 }
 
                 %% Relationships
@@ -316,7 +316,7 @@
                 <strong>Requirement:</strong> PII must be encrypted <em>before</em> entering the DB. To allow searching (e.g., "Find User by Email"), we store a deterministic <strong>Blind Index</strong>.
             </div>
 
-            <h4>Approved Algorithms</h4>
+            <h4>Approved Algorithms Table</h4>
             <table>
                 <thead>
                     <tr>
@@ -425,19 +425,19 @@
             <div class="mermaid">
             classDiagram
                 class Claim {
-                    +_id : ObjectId
-                    +status : Enum
+                    +ObjectId _id
+                    +Enum status
                 }
                 
                 class CareePII {
-                    +nino_enc : String
-                    +nino_hash : String
-                    +dob_enc : String
+                    +String nino_enc
+                    +String nino_hash
+                    +String dob_enc
                 }
 
                 class BankDetailsPII {
-                    +sort_code_enc : String
-                    +account_enc : String
+                    +String sort_code_enc
+                    +String account_enc
                 }
 
                 Claim "1" *-- "1" CareePII : embeds_Secure
