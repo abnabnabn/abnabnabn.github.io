@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student & Graduate Financial Planner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    [x-cloak] { display: none !important; }
+    input[type=range] {
+      accent-color: #2563eb;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen" x-data="budgetApp()" x-cloak>
+
+  <!-- Header -->
+  <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="p-2.5 bg-blue-600 rounded-xl shadow-lg shadow-blue-500/30">
+          <i class="fa-solid fa-calculator text-xl text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight">Student &amp; Graduate Financial Planner</h1>
+          <p class="text-xs text-slate-400">Interactive budget, maintenance loan tiers &amp; deposit savings calculator</p>
+        </div>
+      </div>
+
+      <!-- Share & Export Actions for GitHub Pages / Static Hosting -->
+      <div class="flex items-center gap-2">
+        <button @click="copyShareLink()" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 text-xs">
+          <i class="fa-solid fa-share-nodes"></i>
+          <span x-text="copyStatus"></span>
+        </button>
+        <button @click="exportJson()" title="Export Budget File" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 transition text-xs">
+          <i class="fa-solid fa-download"></i>
+        </button>
+        <label title="Import Budget File" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-700 transition cursor-pointer text-xs">
+          <i class="fa-solid fa-upload"></i>
+          <input type="file" accept=".json" @change="importJson($event)" class="hidden">
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Navigation Tabs -->
+  <div class="bg-white border-b border-slate-200 sticky top-[73px] z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <nav class="flex space-x-2 sm:space-x-8 overflow-x-auto py-2 scrollbar-none">
+        <button @click="activeTab = 'y1'" :class="activeTab === 'y1' ? 'border-blue-600 text-blue-600 font-semibold bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'" class="flex items-center gap-2 py-3 px-3 border-b-2 text-sm rounded-lg whitespace-nowrap transition">
+          <i class="fa-solid fa-building-columns"></i>
+          <span>Year 1: Halls</span>
+        </button>
+        <button @click="activeTab = 'y23'" :class="activeTab === 'y23' ? 'border-blue-600 text-blue-600 font-semibold bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'" class="flex items-center gap-2 py-3 px-3 border-b-2 text-sm rounded-lg whitespace-nowrap transition">
+          <i class="fa-solid fa-people-roof"></i>
+          <span>Years 2 & 3: Shared Flat</span>
+        </button>
+        <button @click="activeTab = 'pg'" :class="activeTab === 'pg' ? 'border-blue-600 text-blue-600 font-semibold bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'" class="flex items-center gap-2 py-3 px-3 border-b-2 text-sm rounded-lg whitespace-nowrap transition">
+          <i class="fa-solid fa-briefcase"></i>
+          <span>Post-Grad & Deposit</span>
+        </button>
+        <button @click="activeTab = 'summary'" :class="activeTab === 'summary' ? 'border-blue-600 text-blue-600 font-semibold bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'" class="flex items-center gap-2 py-3 px-3 border-b-2 text-sm rounded-lg whitespace-nowrap transition">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Overall Summary</span>
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- ========================================== -->
+    <!-- TAB 1: YEAR 1 (HALLS) -->
+    <!-- ========================================== -->
+    <div x-show="activeTab === 'y1'" class="space-y-8">
+      
+      <!-- Top Overview Banner -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Expenses</span>
+          <div class="text-2xl font-bold text-slate-900 mt-2" x-text="formatGBP(calcY1Expenses())"></div>
+          <span class="text-xs text-slate-500 mt-1" x-text="formatGBP(calcY1Expenses()/12) + '/month'"></span>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Maintenance Loan</span>
+          <div class="text-2xl font-bold text-blue-600 mt-2" x-text="formatGBP(y1.loan)"></div>
+          <span class="text-xs text-slate-500 mt-1">Non-repayable until post-grad &gt; £25k</span>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Annual Funding Gap</span>
+          <div class="text-2xl font-bold text-rose-600 mt-2" x-text="formatGBP(calcY1Gap())"></div>
+          <span class="text-xs text-slate-500 mt-1" x-text="formatGBP(calcY1Gap()/12) + '/month needed'"></span>
+        </div>
+        <div class="bg-amber-50 p-5 rounded-2xl border border-amber-200 shadow-sm flex flex-col justify-between">
+          <span class="text-xs font-semibold text-amber-800 uppercase tracking-wider">Term-Only Hours Needed</span>
+          <div class="text-3xl font-black text-amber-700 mt-1" x-text="calcY1RequiredHoursPerWeek() + ' hrs/wk'"></div>
+          <span class="text-xs font-medium text-amber-800 mt-1" x-text="'Across 30 term weeks @ ' + formatGBP(y1.hourlyWage) + '/hr min wage'"></span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Expenses Controls -->
+        <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-receipt text-blue-600"></i>
+              Year 1 Expenses (On-Site Halls)
+            </h2>
+            <span class="text-xs text-slate-500">Utilities &amp; Wi-Fi included in halls rent</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Rent -->
+            <div class="p-4 bg-slate-50 rounded-xl space-y-3">
+              <div class="flex justify-between items-center">
+                <label class="text-sm font-semibold text-slate-700">Halls Rent (Self-Catered)</label>
+                <span class="text-sm font-bold text-blue-600" x-text="formatGBP(y1.rentWeekly) + '/wk'"></span>
+              </div>
+              <input type="range" min="120" max="280" step="5" x-model.number="y1.rentWeekly" class="w-full">
+              <div class="flex justify-between text-xs text-slate-500">
+                <span>Contract Length:</span>
+                <div class="flex items-center gap-1">
+                  <input type="number" x-model.number="y1.weeksRent" class="w-12 text-center border rounded px-1 text-xs">
+                  <span>weeks (<span x-text="formatGBP(y1.rentWeekly * y1.weeksRent)"></span>/yr)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Food & Groceries (Term Weeks Only) -->
+            <div class="p-4 bg-slate-50 rounded-xl space-y-3">
+              <div class="flex justify-between items-center">
+                <label class="text-sm font-semibold text-slate-700">Food &amp; Groceries (Term)</label>
+                <span class="text-sm font-bold text-blue-600" x-text="formatGBP(y1.foodWeekly) + '/wk'"></span>
+              </div>
+              <input type="range" min="30" max="100" step="5" x-model.number="y1.foodWeekly" class="w-full">
+              <div class="text-right text-xs text-slate-500" x-text="formatGBP(y1.foodWeekly * y1.weeksRent) + ' across ' + y1.weeksRent + ' contract weeks'"></div>
+            </div>
+
+            <!-- Personal Care -->
+            <div class="p-4 bg-slate-50 rounded-xl space-y-3">
+              <div class="flex justify-between items-center">
+                <label class="text-sm font-semibold text-slate-700">Personal Care &amp; Toiletries</label>
+                <span class="text-sm font-bold text-blue-600" x-text="formatGBP(y1.personalWeekly) + '/wk'"></span>
+              </div>
+              <input type="range" min="5" max="35" step="1" x-model.number="y1.personalWeekly" class="w-full">
+              <div class="text-right text-xs text-slate-500" x-text="formatGBP(y1.personalWeekly * y1.weeksRent) + ' per year'"></div>
+            </div>
+
+            <!-- Clothing -->
+            <div class="p-4 bg-slate-50 rounded-xl space-y-3">
+              <div class="flex justify-between items-center">
+                <label class="text-sm font-semibold text-slate-700">Clothing &amp; Footwear</label>
+                <span class="text-sm font-bold text-blue-600" x-text="formatGBP(y1.clothesWeekly) + '/wk'"></span>
+              </div>
+              <input type="range" min="5" max="45" step="1" x-model.number="y1.clothesWeekly" class="w-full">
+              <div class="text-right text-xs text-slate-500" x-text="formatGBP(y1.clothesWeekly * y1.weeksRent) + ' per year'"></div>
+            </div>
+
+            <!-- Social -->
+            <div class="p-4 bg-slate-50 rounded-xl space-y-3">
+              <div class="flex justify-between items-center">
+                <label class="text-sm font-semibold text-slate-700">Social, Hobbies &amp; Eating Out</label>
+                <span class="text-sm font-bold text-blue-600" x-text="formatGBP(y1.socialWeekly) + '/wk'"></span>
+              </div>
+              <input type="range" min="15" max="80" step="5" x-model.number="y1.socialWeekly" class="w-full">
+              <div class="text-right text-xs text-slate-500" x-text="formatGBP(y1.socialWeekly * y1.weeksRent) + ' per year'"></div>
+            </div>
+
+            <!-- Course & Travel -->
+            <div class="p-4 bg-slate-50 rounded-xl space-y-3">
+              <div class="flex justify-between items-center">
+                <label class="text-sm font-semibold text-slate-700">Course Materials &amp; Travel</label>
+                <span class="text-sm font-bold text-blue-600" x-text="formatGBP(y1.courseAnnual + y1.travelAnnual) + '/yr'"></span>
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span class="text-slate-500">Books/Tech:</span>
+                  <input type="number" x-model.number="y1.courseAnnual" class="w-full border rounded p-1 mt-1 text-center font-medium">
+                </div>
+                <div>
+                  <span class="text-slate-500">Travel/Passes:</span>
+                  <input type="number" x-model.number="y1.travelAnnual" class="w-full border rounded p-1 mt-1 text-center font-medium">
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Loan & Work Requirements (Year 1) -->
+        <div class="space-y-6">
+          
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+            <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
+              <i class="fa-solid fa-coins text-amber-500"></i>
+              Loan &amp; Term-Time Work
+            </h2>
+
+            <!-- Loan Tier Dropdown Selector -->
+            <div>
+              <label for="loanTierSelectY1" class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Maintenance Loan Tier</label>
+              <select id="loanTierSelectY1" x-model.number="selectedLoanTier" @change="onLoanTierChange()" class="w-full bg-slate-100 border border-slate-300 text-slate-800 rounded-xl px-3 py-2 font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3">
+                <option value="5048">Lowest Rate (£5,048 / yr)</option>
+                <option value="8000">Mid Tier (£8,000 / yr)</option>
+                <option value="10830">Maximum Rate (£10,830 / yr)</option>
+                <option value="custom">Custom Amount</option>
+              </select>
+            </div>
+
+            <!-- Loan Input (Synced with dropdown) -->
+            <div>
+              <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-2">Maintenance Loan Amount</label>
+              <div class="relative">
+                <span class="absolute left-3 top-2.5 text-slate-400 font-bold">£</span>
+                <input type="number" x-model.number="y1.loan" @input="selectedLoanTier = 'custom'" class="w-full pl-7 pr-3 py-2 border rounded-xl font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              </div>
+              <p class="text-xs text-slate-400 mt-1">Select a standard tier above or type custom loan value.</p>
+            </div>
+
+            <!-- Minimum Wage Setting -->
+            <div class="pt-3 border-t border-slate-100 space-y-3">
+              <div class="flex justify-between items-center">
+                <label class="text-xs font-semibold text-slate-700 uppercase">Minimum Wage Rate</label>
+                <span class="text-sm font-bold text-blue-600" x-text="formatGBP(y1.hourlyWage) + '/hr'"></span>
+              </div>
+              <input type="range" min="8.50" max="15.00" step="0.25" x-model.number="y1.hourlyWage" class="w-full">
+            </div>
+
+            <!-- Term-Time Work Calculation Display -->
+            <div class="p-4 bg-slate-900 text-white rounded-xl space-y-3 text-xs">
+              <span class="text-amber-400 font-bold uppercase tracking-wider block">Term-Time Work Required</span>
+              <div class="flex justify-between items-center text-sm border-b border-slate-800 pb-2">
+                <span class="text-slate-300">Annual Shortfall:</span>
+                <span class="font-bold text-rose-400" x-text="formatGBP(calcY1Gap())"></span>
+              </div>
+              <div class="flex justify-between items-center text-sm border-b border-slate-800 pb-2">
+                <span class="text-slate-300">Term Weeks:</span>
+                <span class="font-bold text-white"><span x-text="y1.weeksRent"></span> weeks</span>
+              </div>
+              <div class="flex justify-between items-center text-sm border-b border-slate-800 pb-2">
+                <span class="text-slate-300">Weekly Earnings Needed:</span>
+                <span class="font-bold text-white" x-text="formatGBP(calcY1Gap() / 30) + '/wk'"></span>
+              </div>
+              <div class="flex justify-between items-center text-base pt-1">
+                <span class="text-slate-200 font-semibold">Hours/Week Needed:</span>
+                <span class="font-black text-amber-400 text-lg" x-text="calcY1RequiredHoursPerWeek() + ' hrs/wk'"></span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 2: YEARS 2 & 3 (SHARED FLAT) -->
+    <!-- ========================================== -->
+    <div x-show="activeTab === 'y23'" class="space-y-8">
+      
+      <!-- Top Overview Banner -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Annual Expenses</span>
+          <div class="text-2xl font-bold text-slate-900 mt-2" x-text="formatGBP(calcY23Expenses())"></div>
+          <span class="text-xs text-slate-500 mt-1" x-text="formatGBP(calcY23Expenses()/12) + '/month'"></span>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Maintenance Loan</span>
+          <div class="text-2xl font-bold text-blue-600 mt-2" x-text="formatGBP(y23.loan)"></div>
+          <span class="text-xs text-slate-500 mt-1">Per year in Y2 &amp; Y3</span>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Annual Funding Gap</span>
+          <div class="text-2xl font-bold text-rose-600 mt-2" x-text="formatGBP(calcY23Gap())"></div>
+          <span class="text-xs text-slate-500 mt-1" x-text="formatGBP(calcY23Gap()/12) + '/month needed'"></span>
+        </div>
+        <div class="bg-amber-50 p-5 rounded-2xl border border-amber-200 shadow-sm flex flex-col justify-between">
+          <span class="text-xs font-semibold text-amber-800 uppercase tracking-wider">Term-Only Hours Needed</span>
+          <div class="text-3xl font-black text-amber-700 mt-1" x-text="calcY23RequiredHoursPerWeek() + ' hrs/wk'"></div>
+          <span class="text-xs font-medium text-amber-800 mt-1" x-text="'Across 30 term weeks @ ' + formatGBP(y23.hourlyWage) + '/hr min wage'"></span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Expenses Controls -->
+        <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+            <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-house-user text-blue-600"></i>
+              Years 2 &amp; 3 Monthly Expenses (Shared House/Flat)
+            </h2>
+            <span class="text-xs text-slate-500">Full 52-week contracts</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Rent -->
+            <div class="p-4 bg-slate-50 rounded-xl space-y-3">
+              <div class="flex justify-between items-center">
+                <label class="text-sm font-semibold text-slate-700">Rent (Shared House)</label>
+                <span class="text-sm font-bold text-blue-600" x-text="formatGBP(y23.rentMonthly) + '/mo'"></span>
+              </div>
+              <input type="range" min="350" max="900" step="10" x-model.number="y23.rentMonthly" class="w-full">
+              <div class="flex justify-between text-xs text-slate-500">
+                <span>Equivalent Weekly:</span>
+                <span class="font-medium text-slate-700" x-text="formatGBP(y23.rentMonthly * 12 / 52) + '/wk'"></span>
+              </div>
+            </div>
+
+            <!-- Utilities -->
+            <div class="p-4 bg-slate-50 rounded-xl space-y-3">
+              <div class="flex justify-between items-center">
+                <label class="text-sm font-semibold text-slate-700">Utilities &amp; Wi-Fi (Share)</label>
+                <span class="text-sm font-bold text-blue-600" x-text="formatGBP(y23.billsMonthly) + '/mo'"></span>
+              </div>
+              <input type="range" min="30" max="150" step="5" x-model.number="y23.billsMonthly" class="w-full">
+              <div class="text-right text-xs text-slate-500" x-text="formatGBP(y23.billsMonthly * 12) + ' per year'"></div>
+            </div>
+
+            <!-- Food -->
+            <div class="p-4 bg-slate-50 rounded-xl space-y-3">
+              <div class="flex justify-between items-center">
+                <label class="text-sm font-semibold text-slate-700">Groceries &amp; Food</label>
+                <span class="text-sm font-bold text-blue-600" x-text="formatGBP(y23.foodMonthly) + '/mo'"></span>
+              </div>
+              <input type="range" min="120" max="350" step="10" x-model.number="y23.foodMonthly" class="w-full">
+              <div class="text-right text-xs text-slate-500" x-text="'~' + formatGBP(y23.foodMonthly * 12 / 52) + '/wk'"></div>
+            </div>
+
+            <!-- Personal Care -->
+            <div class="p-4 bg-slate-50 rounded-xl space-y-3">
+              <div class="flex justify-between items-center">
+                <label class="text-sm font-semibold text-slate-700">Personal Care &amp; Toiletries</label>
+                <span class="text-sm font-bold text-blue-600" x-text="formatGBP(y23.personalMonthly) + '/mo'"></span>
+              </div>
+              <input type="range" min="15" max="80" step="5" x-model.number="y23.personalMonthly" class="w-full">
+              <div class="text-right text-xs text-slate-500" x-text="formatGBP(y23.personalMonthly * 12) + ' per year'"></div>
+            </div>
+
+            <!-- Clothing -->
+            <div class="p-4 bg-slate-50 rounded-xl space-y-3">
+              <div class="flex justify-between items-center">
+                <label class="text-sm font-semibold text-slate-700">Clothing &amp; Footwear</label>
+                <span class="text-sm font-bold text-blue-600" x-text="formatGBP(y23.clothesMonthly) + '/mo'"></span>
+              </div>
+              <input type="range" min="15" max="120" step="5" x-model.number="y23.clothesMonthly" class="w-full">
+              <div class="text-right text-xs text-slate-500" x-text="formatGBP(y23.clothesMonthly * 12) + ' per year'"></div>
+            </div>
+
+            <!-- Social -->
+            <div class="p-4 bg-slate-50 rounded-xl space-y-3">
+              <div class="flex justify-between items-center">
+                <label class="text-sm font-semibold text-slate-700">Social, Hobbies &amp; Outings</label>
+                <span class="text-sm font-bold text-blue-600" x-text="formatGBP(y23.socialMonthly) + '/mo'"></span>
+              </div>
+              <input type="range" min="40" max="250" step="10" x-model.number="y23.socialMonthly" class="w-full">
+              <div class="text-right text-xs text-slate-500" x-text="formatGBP(y23.socialMonthly * 12) + ' per year'"></div>
+            </div>
+
+            <!-- Travel & Household -->
+            <div class="p-4 bg-slate-50 rounded-xl space-y-3">
+              <div class="flex justify-between items-center">
+                <label class="text-sm font-semibold text-slate-700">Travel &amp; Household Misc</label>
+                <span class="text-sm font-bold text-blue-600" x-text="formatGBP((y23.travelAnnual/12) + y23.miscMonthly) + '/mo'"></span>
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span class="text-slate-500">Travel Pass (£/yr):</span>
+                  <input type="number" x-model.number="y23.travelAnnual" class="w-full border rounded p-1 mt-1 text-center font-medium">
+                </div>
+                <div>
+                  <span class="text-slate-500">Household Goods (£/mo):</span>
+                  <input type="number" x-model.number="y23.miscMonthly" class="w-full border rounded p-1 mt-1 text-center font-medium">
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Loan & Work Requirements (Years 2 & 3) -->
+        <div class="space-y-6">
+          
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+            <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
+              <i class="fa-solid fa-coins text-amber-500"></i>
+              Loan &amp; Term-Time Work
+            </h2>
+
+            <!-- Loan Tier Dropdown Selector -->
+            <div>
+              <label for="loanTierSelectY23" class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Maintenance Loan Tier</label>
+              <select id="loanTierSelectY23" x-model.number="selectedLoanTier" @change="onLoanTierChange()" class="w-full bg-slate-100 border border-slate-300 text-slate-800 rounded-xl px-3 py-2 font-semibold text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3">
+                <option value="5048">Lowest Rate (£5,048 / yr)</option>
+                <option value="8000">Mid Tier (£8,000 / yr)</option>
+                <option value="10830">Maximum Rate (£10,830 / yr)</option>
+                <option value="custom">Custom Amount</option>
+              </select>
+            </div>
+
+            <!-- Loan Input -->
+            <div>
+              <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-2">Maintenance Loan Amount</label>
+              <div class="relative">
+                <span class="absolute left-3 top-2.5 text-slate-400 font-bold">£</span>
+                <input type="number" x-model.number="y23.loan" @input="selectedLoanTier = 'custom'" class="w-full pl-7 pr-3 py-2 border rounded-xl font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              </div>
+            </div>
+
+            <!-- Minimum Wage Setting -->
+            <div class="pt-3 border-t border-slate-100 space-y-3">
+              <div class="flex justify-between items-center">
+                <label class="text-xs font-semibold text-slate-700 uppercase">Minimum Wage Rate</label>
+                <span class="text-sm font-bold text-blue-600" x-text="formatGBP(y23.hourlyWage) + '/hr'"></span>
+              </div>
+              <input type="range" min="8.50" max="15.00" step="0.25" x-model.number="y23.hourlyWage" class="w-full">
+            </div>
+
+            <!-- Term-Time Work Calculation Display -->
+            <div class="p-4 bg-slate-900 text-white rounded-xl space-y-3 text-xs">
+              <span class="text-amber-400 font-bold uppercase tracking-wider block">Term-Time Work Required</span>
+              <div class="flex justify-between items-center text-sm border-b border-slate-800 pb-2">
+                <span class="text-slate-300">Annual Shortfall:</span>
+                <span class="font-bold text-rose-400" x-text="formatGBP(calcY23Gap())"></span>
+              </div>
+              <div class="flex justify-between items-center text-sm border-b border-slate-800 pb-2">
+                <span class="text-slate-300">Term Weeks:</span>
+                <span class="font-bold text-white">30 weeks</span>
+              </div>
+              <div class="flex justify-between items-center text-sm border-b border-slate-800 pb-2">
+                <span class="text-slate-300">Weekly Earnings Needed:</span>
+                <span class="font-bold text-white" x-text="formatGBP(calcY23Gap() / 30) + '/wk'"></span>
+              </div>
+              <div class="flex justify-between items-center text-base pt-1">
+                <span class="text-slate-200 font-semibold">Hours/Week Needed:</span>
+                <span class="font-black text-amber-400 text-lg" x-text="calcY23RequiredHoursPerWeek() + ' hrs/wk'"></span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 3: POST-GRAD & FLAT DEPOSIT -->
+    <!-- ========================================== -->
+    <div x-show="activeTab === 'pg'" class="space-y-8">
+      
+      <!-- Lifestyle Inflation Callout Banner -->
+      <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs text-amber-900 flex items-start gap-3">
+        <i class="fa-solid fa-circle-info text-amber-600 text-lg mt-0.5"></i>
+        <div>
+          <strong class="font-bold block text-sm text-amber-950">Why are post-grad expenses higher than university?</strong>
+          <ul class="list-disc list-inside mt-1 space-y-0.5 text-amber-800">
+            <li><strong>Council Tax:</strong> Full-time students pay <strong>£0 Council Tax</strong>. Graduates must pay full Council Tax (£80–£140+/month).</li>
+            <li><strong>Upgraded Housing:</strong> Higher standards for professional flatshares vs standard student HMOs.</li>
+            <li><strong>Work & Lifestyle Expenses:</strong> Daily commuting, professional wardrobe/workwear, gym memberships, and a more active professional social life.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Graduate Salary & Take-Home -->
+      <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-xl space-y-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-xl font-bold flex items-center gap-2">
+              <i class="fa-solid fa-graduation-cap text-blue-400"></i>
+              Graduate Career &amp; Take-Home Salary
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">Calculates UK Income Tax, Class 1 NI (8%), 5% Pension &amp; Plan 5 Student Loan Repayment</p>
+          </div>
+          <div class="bg-slate-800 px-4 py-2 rounded-xl text-right">
+            <span class="text-xs text-slate-400 block">Est. Monthly Net Income:</span>
+            <span class="text-2xl font-black text-emerald-400" x-text="formatGBP(calcNetMonthly())"></span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <div class="flex justify-between text-sm font-medium mb-1">
+              <span>Gross Starting Salary:</span>
+              <span class="font-bold text-blue-400" x-text="formatGBP(pg.salary) + '/yr'"></span>
+            </div>
+            <input type="range" min="20000" max="55000" step="1000" x-model.number="pg.salary" class="w-full">
+          </div>
+
+          <div>
+            <div class="flex justify-between text-sm font-medium mb-1">
+              <span>Pension Contribution:</span>
+              <span class="font-bold text-blue-400" x-text="pg.pensionPct + '%'"></span>
+            </div>
+            <input type="range" min="0" max="10" step="1" x-model.number="pg.pensionPct" class="w-full">
+          </div>
+
+          <div class="flex items-center justify-between bg-slate-800/80 p-3 rounded-xl border border-slate-700">
+            <div>
+              <span class="text-xs font-semibold block">Plan 5 Student Loan Repayment</span>
+              <span class="text-[11px] text-slate-400">9% repayment on earnings above £25,000/yr</span>
+            </div>
+            <input type="checkbox" x-model="pg.hasStudentLoan" class="w-5 h-5 rounded text-blue-600 focus:ring-blue-500">
+          </div>
+        </div>
+
+        <!-- Monthly Repayment & Tax Breakdown Row -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-slate-800/50 p-3 rounded-xl border border-slate-800">
+          <div>
+            <span class="text-slate-400 block">Income Tax:</span>
+            <span class="font-bold text-slate-200" x-text="formatGBP(calcTaxBreakdown().tax / 12) + '/mo'"></span>
+          </div>
+          <div>
+            <span class="text-slate-400 block">National Insurance:</span>
+            <span class="font-bold text-slate-200" x-text="formatGBP(calcTaxBreakdown().ni / 12) + '/mo'"></span>
+          </div>
+          <div class="bg-blue-950/60 p-2 rounded-lg border border-blue-800/50">
+            <span class="text-blue-300 block font-semibold">Student Loan Repayment:</span>
+            <span class="font-black text-amber-400 text-sm" x-text="formatGBP(calcTaxBreakdown().studentLoan / 12) + '/mo'"></span>
+          </div>
+          <div>
+            <span class="text-slate-400 block">Pension (5%):</span>
+            <span class="font-bold text-slate-200" x-text="formatGBP(calcTaxBreakdown().pension / 12) + '/mo'"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deposit Target Controls -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-piggy-bank text-emerald-600"></i>
+              Flat Purchase Target &amp; LISA Settings
+            </h2>
+            <p class="text-xs text-slate-500">Lifetime ISA (LISA) adds 25% free government bonus up to £1,000/year bonus on £4,000 saved</p>
+          </div>
+          
+          <label class="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 cursor-pointer text-xs font-semibold text-emerald-800">
+            <input type="checkbox" x-model="pg.useLisa" class="w-4 h-4 rounded text-emerald-600">
+            <span>Use Lifetime ISA (25% Bonus)</span>
+          </label>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="p-4 bg-slate-50 rounded-xl space-y-2">
+            <label class="text-xs font-semibold text-slate-600 uppercase">Target Property Price</label>
+            <div class="text-xl font-bold text-slate-900" x-text="formatGBP(pg.propertyPrice)"></div>
+            <input type="range" min="100000" max="350000" step="5000" x-model.number="pg.propertyPrice" class="w-full">
+          </div>
+
+          <div class="p-4 bg-slate-50 rounded-xl space-y-2">
+            <label class="text-xs font-semibold text-slate-600 uppercase">Deposit Percentage</label>
+            <div class="text-xl font-bold text-slate-900" x-text="pg.depositPct + '% (' + formatGBP(pg.propertyPrice * pg.depositPct / 100) + ')'"></div>
+            <input type="range" min="5" max="20" step="1" x-model.number="pg.depositPct" class="w-full">
+          </div>
+
+          <div class="p-4 bg-slate-50 rounded-xl space-y-2">
+            <label class="text-xs font-semibold text-slate-600 uppercase">Legal Fees &amp; Moving Buffer</label>
+            <div class="text-xl font-bold text-slate-900" x-text="formatGBP(pg.movingFees)"></div>
+            <input type="range" min="1000" max="5000" step="250" x-model.number="pg.movingFees" class="w-full">
+          </div>
+        </div>
+
+        <div class="p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between text-sm">
+          <span class="font-medium text-blue-900">Total Savings Target Required:</span>
+          <span class="text-xl font-black text-blue-700" x-text="formatGBP(calcDepositTarget())"></span>
+        </div>
+      </div>
+
+      <!-- Living Situation Comparison & Timelines -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- Shared Living Post-Grad -->
+        <div class="bg-white rounded-2xl border-2 border-emerald-500/40 shadow-lg p-6 space-y-6 relative overflow-hidden">
+          <div class="bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 absolute top-0 right-0 rounded-bl-xl">
+            Fastest Deposit Path
+          </div>
+
+          <div class="border-b border-slate-100 pb-3">
+            <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-users text-emerald-600"></i>
+              Option A: Shared Flat Post-Grad
+            </h3>
+            <p class="text-xs text-slate-500">Splitting rent &amp; bills with housemates after uni</p>
+          </div>
+
+          <!-- Expenses Summary -->
+          <div class="space-y-3">
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-slate-600">Rent &amp; Service Charge:</span>
+              <input type="number" x-model.number="pg.sharedRent" class="w-20 text-right border rounded p-1 font-semibold text-slate-800">
+            </div>
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-slate-600">Council Tax (Share):</span>
+              <input type="number" x-model.number="pg.sharedCouncilTax" class="w-20 text-right border rounded p-1 font-semibold text-slate-800">
+            </div>
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-slate-600">Utilities &amp; Wi-Fi:</span>
+              <input type="number" x-model.number="pg.sharedBills" class="w-20 text-right border rounded p-1 font-semibold text-slate-800">
+            </div>
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-slate-600">Groceries &amp; Food:</span>
+              <input type="number" x-model.number="pg.sharedFood" class="w-20 text-right border rounded p-1 font-semibold text-slate-800">
+            </div>
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-slate-600">Personal Care &amp; Toiletries:</span>
+              <input type="number" x-model.number="pg.sharedPersonal" class="w-20 text-right border rounded p-1 font-semibold text-slate-800">
+            </div>
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-slate-600">Clothing &amp; Footwear:</span>
+              <input type="number" x-model.number="pg.sharedClothes" class="w-20 text-right border rounded p-1 font-semibold text-slate-800">
+            </div>
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-slate-600">Social, Dining Out &amp; Hobbies:</span>
+              <input type="number" x-model.number="pg.sharedSocial" class="w-20 text-right border rounded p-1 font-semibold text-slate-800">
+            </div>
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-slate-600">Commuting / Transport:</span>
+              <input type="number" x-model.number="pg.sharedTravel" class="w-20 text-right border rounded p-1 font-semibold text-slate-800">
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-slate-200 space-y-4">
+            <div class="flex justify-between items-center">
+              <span class="text-sm font-semibold text-slate-700">Total Monthly Expenses:</span>
+              <span class="text-base font-bold text-slate-900" x-text="formatGBP(calcSharedExpenses())"></span>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+              <span class="text-sm font-bold text-emerald-900">Monthly Net Savings:</span>
+              <span class="text-xl font-black text-emerald-600" x-text="formatGBP(calcSharedSavings())"></span>
+            </div>
+
+            <!-- Savings Timeline Box -->
+            <div class="p-4 bg-slate-900 text-white rounded-xl space-y-2">
+              <span class="text-xs text-slate-400 uppercase font-semibold">Time to Save <span x-text="formatGBP(calcDepositTarget())"></span> Target:</span>
+              <div class="text-2xl font-black text-emerald-400" x-text="calcTimeline('shared').text"></div>
+              <p class="text-[11px] text-slate-400" x-text="'Accumulating approx. ' + formatGBP(calcTimeline('shared').effectiveRate) + '/month ' + (pg.useLisa ? '(including LISA bonus)' : '')"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Solo Renting Post-Grad -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+          <div class="border-b border-slate-100 pb-3">
+            <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-user text-blue-600"></i>
+              Option B: Renting Solo Flat Post-Grad
+            </h3>
+            <p class="text-xs text-slate-500">Renting a 1-bed flat independently</p>
+          </div>
+
+          <!-- Expenses Summary -->
+          <div class="space-y-3">
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-slate-600">Solo Rent &amp; Service Charge:</span>
+              <input type="number" x-model.number="pg.soloRent" class="w-20 text-right border rounded p-1 font-semibold text-slate-800">
+            </div>
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-slate-600">Council Tax (Single 25% disc):</span>
+              <input type="number" x-model.number="pg.soloCouncilTax" class="w-20 text-right border rounded p-1 font-semibold text-slate-800">
+            </div>
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-slate-600">Solo Utilities &amp; Broadband:</span>
+              <input type="number" x-model.number="pg.soloBills" class="w-20 text-right border rounded p-1 font-semibold text-slate-800">
+            </div>
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-slate-600">Groceries &amp; Food:</span>
+              <input type="number" x-model.number="pg.soloFood" class="w-20 text-right border rounded p-1 font-semibold text-slate-800">
+            </div>
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-slate-600">Personal Care &amp; Toiletries:</span>
+              <input type="number" x-model.number="pg.soloPersonal" class="w-20 text-right border rounded p-1 font-semibold text-slate-800">
+            </div>
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-slate-600">Clothing &amp; Footwear:</span>
+              <input type="number" x-model.number="pg.soloClothes" class="w-20 text-right border rounded p-1 font-semibold text-slate-800">
+            </div>
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-slate-600">Social, Dining Out &amp; Hobbies:</span>
+              <input type="number" x-model.number="pg.soloSocial" class="w-20 text-right border rounded p-1 font-semibold text-slate-800">
+            </div>
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-slate-600">Commuting / Transport:</span>
+              <input type="number" x-model.number="pg.soloTravel" class="w-20 text-right border rounded p-1 font-semibold text-slate-800">
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-slate-200 space-y-4">
+            <div class="flex justify-between items-center">
+              <span class="text-sm font-semibold text-slate-700">Total Monthly Expenses:</span>
+              <span class="text-base font-bold text-slate-900" x-text="formatGBP(calcSoloExpenses())"></span>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-blue-50 rounded-xl border border-blue-200">
+              <span class="text-sm font-bold text-blue-900">Monthly Net Savings:</span>
+              <span class="text-xl font-black text-blue-600" x-text="formatGBP(calcSoloSavings())"></span>
+            </div>
+
+            <!-- Savings Timeline Box -->
+            <div class="p-4 bg-slate-900 text-white rounded-xl space-y-2">
+              <span class="text-xs text-slate-400 uppercase font-semibold">Time to Save <span x-text="formatGBP(calcDepositTarget())"></span> Target:</span>
+              <div class="text-2xl font-black text-blue-400" x-text="calcTimeline('solo').text"></div>
+              <p class="text-[11px] text-slate-400" x-text="'Accumulating approx. ' + formatGBP(calcTimeline('solo').effectiveRate) + '/month ' + (pg.useLisa ? '(including LISA bonus)' : '')"></p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 4: OVERALL SUMMARY & ROADMAP -->
+    <!-- ========================================== -->
+    <div x-show="activeTab === 'summary'" class="space-y-8">
+      
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+        <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-4">
+          <i class="fa-solid fa-map-location-dot text-blue-600"></i>
+          Complete Financial Journey Roadmap
+        </h2>
+
+        <!-- Roadmap Timeline Cards -->
+        <div class="relative border-l-2 border-blue-200 ml-4 pl-6 space-y-8 my-6">
+          
+          <!-- Y1 -->
+          <div class="relative">
+            <div class="absolute -left-[31px] top-0 bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">1</div>
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+              <div class="flex justify-between items-center">
+                <h3 class="font-bold text-slate-900">Year 1: University Halls</h3>
+                <span class="text-xs font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-800" x-text="formatGBP(calcY1Expenses()) + ' Expenses'"></span>
+              </div>
+              <p class="text-xs text-slate-600">
+                Loan covers <strong x-text="formatGBP(y1.loan)"></strong>. Funding gap of <strong class="text-rose-600" x-text="formatGBP(calcY1Gap())"></strong> is met by working <strong class="text-amber-700" x-text="calcY1RequiredHoursPerWeek() + ' hrs/wk'"></strong> during the 30 term weeks (assuming minimum wage of <span x-text="formatGBP(y1.hourlyWage)"></span>/hr and zero summer work).
+              </p>
+            </div>
+          </div>
+
+          <!-- Y2-3 -->
+          <div class="relative">
+            <div class="absolute -left-[31px] top-0 bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">2</div>
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+              <div class="flex justify-between items-center">
+                <h3 class="font-bold text-slate-900">Years 2 &amp; 3: Shared Student House</h3>
+                <span class="text-xs font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-800" x-text="formatGBP(calcY23Expenses()) + '/yr Expenses'"></span>
+              </div>
+              <p class="text-xs text-slate-600">
+                Loan covers <strong x-text="formatGBP(y23.loan)"></strong>/yr. Funding gap of <strong class="text-rose-600" x-text="formatGBP(calcY23Gap())"></strong>/yr is met by working <strong class="text-amber-700" x-text="calcY23RequiredHoursPerWeek() + ' hrs/wk'"></strong> during the 30 term weeks (assuming minimum wage of <span x-text="formatGBP(y23.hourlyWage)"></span>/hr and zero summer work).
+              </p>
+            </div>
+          </div>
+
+          <!-- Post-Grad -->
+          <div class="relative">
+            <div class="absolute -left-[31px] top-0 bg-emerald-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">3</div>
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+              <div class="flex justify-between items-center">
+                <h3 class="font-bold text-slate-900">Graduation &amp; Career Entry</h3>
+                <span class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800" x-text="formatGBP(pg.salary) + ' Salary'"></span>
+              </div>
+              <p class="text-xs text-slate-600">
+                Monthly take-home pay is <strong class="text-emerald-700" x-text="formatGBP(calcNetMonthly())"></strong>. This includes deducting <strong class="text-amber-700" x-text="formatGBP(calcTaxBreakdown().studentLoan / 12) + '/month'"></strong> for Plan 5 student loan repayments alongside Income Tax, NI, and pension contributions.
+              </p>
+            </div>
+          </div>
+
+          <!-- Savings Target -->
+          <div class="relative">
+            <div class="absolute -left-[31px] top-0 bg-amber-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">4</div>
+            <div class="bg-slate-900 text-white p-5 rounded-xl space-y-3">
+              <h3 class="font-bold text-white text-base">Flat Deposit Savings Goal</h3>
+              <p class="text-xs text-slate-300">
+                Targeting <strong class="text-amber-400" x-text="formatGBP(pg.propertyPrice)"></strong> property requiring <strong class="text-amber-400" x-text="formatGBP(calcDepositTarget())"></strong> total deposit &amp; fees.
+              </p>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div class="p-3 bg-slate-800 rounded-lg border border-slate-700">
+                  <span class="text-[11px] text-slate-400 block font-medium">Shared Flat Strategy:</span>
+                  <span class="text-lg font-bold text-emerald-400" x-text="calcTimeline('shared').text"></span>
+                  <span class="text-[10px] text-slate-400 block" x-text="'Saving ' + formatGBP(calcSharedSavings()) + '/mo'"></span>
+                </div>
+                <div class="p-3 bg-slate-800 rounded-lg border border-slate-700">
+                  <span class="text-[11px] text-slate-400 block font-medium">Solo Renting Strategy:</span>
+                  <span class="text-lg font-bold text-blue-400" x-text="calcTimeline('solo').text"></span>
+                  <span class="text-[10px] text-slate-400 block" x-text="'Saving ' + formatGBP(calcSoloSavings()) + '/mo'"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script>
+    let auth = null;
+    let db = null;
+    let currentUser = null;
+
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('budgetApp', () => ({
+        activeTab: 'y1',
+        selectedLoanTier: 5048,
+        saveStatus: 'Connecting...',
+        copyStatus: 'Share Budget',
+        isLoaded: false,
+        saveTimeout: null,
+
+        // Year 1 State
+        y1: {
+          loan: 5048,
+          weeksRent: 40,
+          rentWeekly: 170,
+          foodWeekly: 50,
+          courseAnnual: 300,
+          personalWeekly: 12,
+          clothesWeekly: 15,
+          socialWeekly: 35,
+          travelAnnual: 500,
+          hourlyWage: 10.50
+        },
+
+        // Years 2 & 3 State
+        y23: {
+          loan: 5048,
+          rentMonthly: 560,
+          billsMonthly: 70,
+          foodMonthly: 215,
+          personalMonthly: 35,
+          clothesMonthly: 45,
+          socialMonthly: 100,
+          travelAnnual: 500,
+          miscMonthly: 25,
+          hourlyWage: 10.50
+        },
+
+        // Post-Grad State
+        pg: {
+          salary: 29000,
+          pensionPct: 5,
+          hasStudentLoan: true,
+
+          // Shared Living
+          sharedRent: 650,
+          sharedCouncilTax: 80,
+          sharedBills: 95,
+          sharedFood: 260,
+          sharedPersonal: 60,
+          sharedClothes: 75,
+          sharedSocial: 220,
+          sharedTravel: 150,
+
+          // Solo Living
+          soloRent: 925,
+          soloCouncilTax: 130,
+          soloBills: 160,
+          soloFood: 260,
+          soloPersonal: 60,
+          soloClothes: 75,
+          soloSocial: 220,
+          soloTravel: 150,
+
+          // Deposit
+          propertyPrice: 160000,
+          depositPct: 10,
+          movingFees: 2000,
+          useLisa: true
+        },
+
+        init() {
+          const loadedFromUrl = this.loadFromUrlHash();
+          this.setupCloudSync();
+          if (loadedFromUrl) {
+            this.saveStatus = 'Auto-Restored ✓';
+          }
+
+          // Automatically sync all budget changes to browser memory in real-time
+          this.$watch(() => JSON.stringify({ y1: this.y1, y23: this.y23, pg: this.pg, tier: this.selectedLoanTier }), () => {
+            this.syncToBrowserState();
+          });
+        },
+
+        // Auto-saves state directly into browser memory/history bar (zero clicks required)
+        syncToBrowserState() {
+          try {
+            const payload = { y1: this.y1, y23: this.y23, pg: this.pg, tier: this.selectedLoanTier };
+            const encoded = btoa(encodeURIComponent(JSON.stringify(payload)));
+            window.history.replaceState(null, '', `#budget=${encoded}`);
+            this.saveStatus = 'Auto-Saved ✓';
+          } catch (e) {
+            console.error("Auto-save failed:", e);
+          }
+        },
+
+        // Shareable Link & File Backup Functions for GitHub Pages / Static Hosting
+        getShareableUrl() {
+          const payload = { y1: this.y1, y23: this.y23, pg: this.pg, tier: this.selectedLoanTier };
+          const encoded = btoa(encodeURIComponent(JSON.stringify(payload)));
+          const url = new URL(window.location.href);
+          url.hash = `budget=${encoded}`;
+          return url.toString();
+        },
+
+        copyShareLink() {
+          const url = this.getShareableUrl();
+          const dummy = document.createElement('input');
+          document.body.appendChild(dummy);
+          dummy.value = url;
+          dummy.select();
+          document.execCommand('copy');
+          document.body.removeChild(dummy);
+          window.location.hash = `budget=${btoa(encodeURIComponent(JSON.stringify({ y1: this.y1, y23: this.y23, pg: this.pg, tier: this.selectedLoanTier })))}`;
+          this.copyStatus = 'Link Copied! ✓';
+          setTimeout(() => this.copyStatus = 'Share Budget', 2500);
+        },
+
+        exportJson() {
+          const payload = { y1: this.y1, y23: this.y23, pg: this.pg, selectedLoanTier: this.selectedLoanTier, date: new Date().toISOString() };
+          const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
+          const dlAnchorElem = document.createElement('a');
+          dlAnchorElem.setAttribute("href", dataStr);
+          dlAnchorElem.setAttribute("download", `student-budget-plan.json`);
+          dlAnchorElem.click();
+        },
+
+        importJson(event) {
+          const file = event.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const data = JSON.parse(e.target.result);
+              if (data.y1) Object.assign(this.y1, data.y1);
+              if (data.y23) Object.assign(this.y23, data.y23);
+              if (data.pg) Object.assign(this.pg, data.pg);
+              if (data.selectedLoanTier) this.selectedLoanTier = data.selectedLoanTier;
+              this.saveStatus = 'Imported ✓';
+            } catch (err) {
+              this.saveStatus = 'Import Error';
+            }
+          };
+          reader.readAsText(file);
+        },
+
+        loadFromUrlHash() {
+          try {
+            const hash = window.location.hash;
+            if (hash && hash.includes('budget=')) {
+              const encoded = hash.split('budget=')[1];
+              const decoded = JSON.parse(decodeURIComponent(atob(encoded)));
+              if (decoded.y1) Object.assign(this.y1, decoded.y1);
+              if (decoded.y23) Object.assign(this.y23, decoded.y23);
+              if (decoded.pg) Object.assign(this.pg, decoded.pg);
+              if (decoded.tier) this.selectedLoanTier = decoded.tier;
+              return true;
+            }
+          } catch (e) {
+            console.error("Failed to parse URL hash budget", e);
+          }
+          return false;
+        },
+
+        async setupCloudSync() {
+          const appId = typeof __app_id !== 'undefined' ? __app_id : 'student-budget-planner';
+          const config = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+
+          if (!config) {
+            this.saveStatus = 'In-Memory Mode';
+            this.isLoaded = true;
+            return;
+          }
+
+          try {
+            const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
+            const { getAuth, signInWithCustomToken, signInAnonymously } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
+            const { getFirestore, doc, setDoc, getDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+
+            const app = initializeApp(config);
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+              try {
+                const userCred = await signInWithCustomToken(auth, __initial_auth_token);
+                currentUser = userCred.user;
+              } catch (e) {
+                const userCred = await signInAnonymously(auth);
+                currentUser = userCred.user;
+              }
+            } else {
+              const userCred = await signInAnonymously(auth);
+              currentUser = userCred.user;
+            }
+
+            if (currentUser) {
+              const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'budgetData');
+              const docSnap = await getDoc(docRef);
+              if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data.y1) Object.assign(this.y1, data.y1);
+                if (data.y23) Object.assign(this.y23, data.y23);
+                if (data.pg) Object.assign(this.pg, data.pg);
+                if (data.selectedLoanTier) this.selectedLoanTier = data.selectedLoanTier;
+                this.saveStatus = 'Restored ✓';
+              } else {
+                this.saveStatus = 'Cloud Ready';
+              }
+            }
+          } catch (err) {
+            console.error("Cloud sync init failed:", err);
+            this.saveStatus = 'Offline Mode';
+          } finally {
+            this.isLoaded = true;
+            this.$watch(() => JSON.stringify({ y1: this.y1, y23: this.y23, pg: this.pg, tier: this.selectedLoanTier }), () => {
+              this.debouncedSave();
+            });
+          }
+        },
+
+        debouncedSave() {
+          if (!this.isLoaded) return;
+          this.saveStatus = 'Saving...';
+          clearTimeout(this.saveTimeout);
+          this.saveTimeout = setTimeout(() => {
+            this.saveData();
+          }, 800);
+        },
+
+        async saveData() {
+          if (!currentUser || !db) {
+            this.saveStatus = 'In-Memory';
+            return;
+          }
+          try {
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'student-budget-planner';
+            const { doc, setDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+            const docRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'budgetData');
+            
+            await setDoc(docRef, {
+              y1: this.y1,
+              y23: this.y23,
+              pg: this.pg,
+              selectedLoanTier: this.selectedLoanTier,
+              updatedAt: new Date().toISOString()
+            });
+            this.saveStatus = 'Saved ✓';
+          } catch (err) {
+            console.error("Save error:", err);
+            this.saveStatus = 'Save Failed';
+          }
+        },
+
+        formatGBP(amount) {
+          return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(amount || 0);
+        },
+
+        onLoanTierChange() {
+          if (this.selectedLoanTier !== 'custom') {
+            const val = Number(this.selectedLoanTier);
+            this.y1.loan = val;
+            this.y23.loan = val;
+          }
+        },
+
+        // Year 1 Calculations (Food is calculated across term weeks)
+        calcY1Expenses() {
+          const rent = this.y1.rentWeekly * this.y1.weeksRent;
+          const food = this.y1.foodWeekly * this.y1.weeksRent;
+          const personal = this.y1.personalWeekly * this.y1.weeksRent;
+          const clothes = this.y1.clothesWeekly * this.y1.weeksRent;
+          const social = this.y1.socialWeekly * this.y1.weeksRent;
+          return rent + food + personal + clothes + social + this.y1.courseAnnual + this.y1.travelAnnual;
+        },
+
+        calcY1Gap() {
+          return Math.max(0, this.calcY1Expenses() - this.y1.loan);
+        },
+
+        calcY1RequiredHoursPerWeek() {
+          const gap = this.calcY1Gap();
+          if (gap <= 0 || this.y1.hourlyWage <= 0) return 0;
+          const weeklyRequired = gap / 30; // Assuming 30 term weeks
+          return Math.ceil(weeklyRequired / this.y1.hourlyWage);
+        },
+
+        // Years 2 & 3 Calculations
+        calcY23Expenses() {
+          const monthly = (this.y23.rentMonthly + this.y23.billsMonthly + this.y23.foodMonthly + this.y23.personalMonthly + this.y23.clothesMonthly + this.y23.socialMonthly + this.y23.miscMonthly) * 12;
+          return monthly + this.y23.travelAnnual;
+        },
+
+        calcY23Gap() {
+          return Math.max(0, this.calcY23Expenses() - this.y23.loan);
+        },
+
+        calcY23RequiredHoursPerWeek() {
+          const gap = this.calcY23Gap();
+          if (gap <= 0 || this.y23.hourlyWage <= 0) return 0;
+          const weeklyRequired = gap / 30;
+          return Math.ceil(weeklyRequired / this.y23.hourlyWage);
+        },
+
+        // Post-Grad Salary Calculations
+        calcTaxBreakdown() {
+          const salary = this.pg.salary;
+          const pension = salary * (this.pg.pensionPct / 100);
+          const adjustedSalary = Math.max(0, salary - pension);
+
+          // UK Income Tax (20% basic rate over £12,570)
+          const personalAllowance = 12570;
+          const taxableIncome = Math.max(0, adjustedSalary - personalAllowance);
+          const tax = taxableIncome * 0.20;
+
+          // National Insurance (8% between £12,570 and £50,270)
+          const niThreshold = 12570;
+          const niIncome = Math.max(0, salary - niThreshold);
+          const ni = niIncome * 0.08;
+
+          // Plan 5 Student Loan (9% above £25,000 threshold)
+          let studentLoan = 0;
+          if (this.pg.hasStudentLoan && salary > 25000) {
+            studentLoan = (salary - 25000) * 0.09;
+          }
+
+          const totalDeductions = tax + ni + studentLoan + pension;
+          const netAnnual = salary - totalDeductions;
+
+          return { tax, ni, studentLoan, pension, netAnnual };
+        },
+
+        calcNetMonthly() {
+          return this.calcTaxBreakdown().netAnnual / 12;
+        },
+
+        // Post-Grad Living Expenses
+        calcSharedExpenses() {
+          return this.pg.sharedRent + this.pg.sharedCouncilTax + this.pg.sharedBills + this.pg.sharedFood + this.pg.sharedPersonal + this.pg.sharedClothes + this.pg.sharedSocial + this.pg.sharedTravel;
+        },
+
+        calcSoloExpenses() {
+          return this.pg.soloRent + this.pg.soloCouncilTax + this.pg.soloBills + this.pg.soloFood + this.pg.soloPersonal + this.pg.soloClothes + this.pg.soloSocial + this.pg.soloTravel;
+        },
+
+        calcSharedSavings() {
+          return Math.max(0, this.calcNetMonthly() - this.calcSharedExpenses());
+        },
+
+        calcSoloSavings() {
+          return Math.max(0, this.calcNetMonthly() - this.calcSoloExpenses());
+        },
+
+        // Flat Deposit & Timeline
+        calcDepositTarget() {
+          return (this.pg.propertyPrice * (this.pg.depositPct / 100)) + this.pg.movingFees;
+        },
+
+        calcTimeline(option) {
+          const target = this.calcDepositTarget();
+          const monthlySaved = option === 'shared' ? this.calcSharedSavings() : this.calcSoloSavings();
+
+          if (monthlySaved <= 0) {
+            return { text: 'Unable to save (Expenses > Pay)', effectiveRate: 0 };
+          }
+
+          let effectiveMonthlyRate = monthlySaved;
+
+          if (this.pg.useLisa) {
+            if (monthlySaved <= 333.33) {
+              effectiveMonthlyRate = monthlySaved * 1.25;
+            } else {
+              effectiveMonthlyRate = monthlySaved + 83.33;
+            }
+          }
+
+          const monthsNeeded = Math.ceil(target / effectiveMonthlyRate);
+          const years = Math.floor(monthsNeeded / 12);
+          const months = monthsNeeded % 12;
+
+          let timeText = '';
+          if (years > 0) {
+            timeText += years + (years === 1 ? ' year' : ' years');
+          }
+          if (months > 0) {
+            if (years > 0) timeText += ' ';
+            timeText += months + (months === 1 ? ' month' : ' months');
+          }
+
+          return { text: timeText, effectiveRate: effectiveMonthlyRate };
+        }
+      }));
+    });
+  </script>
+</body>
+</html>
